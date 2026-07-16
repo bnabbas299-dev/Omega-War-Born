@@ -1,21 +1,25 @@
 """
 Main menu dispatcher.
 Routes every menu_ callback to the correct section.
-Unimplemented sections show a clear placeholder.
 """
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from models.player import Player
 from models.country import Country
 from utils.keyboards import MAIN_MENU_KEYBOARD, COUNTRY_KEYBOARD
+from utils.panel_builder import build_country_panel
 
 _NOT_REGISTERED = (
     "⚠️ شما هنوز کشوری انتخاب نکرده‌اید.\n"
     "لطفاً ابتدا /start را بزنید."
 )
 _COMING_SOON = "🔧 این بخش به زودی پیاده‌سازی می‌شود."
+
+BACK_BUTTON = InlineKeyboardMarkup([
+    [InlineKeyboardButton("⬅ بازگشت به منوی اصلی", callback_data="menu_back")],
+])
 
 
 async def menu_callback_handler(
@@ -32,7 +36,7 @@ async def menu_callback_handler(
         await query.message.reply_text("🎮 منوی اصلی:", reply_markup=MAIN_MENU_KEYBOARD)
         return
 
-    # ── Select country (re-show if not yet registered) ───────────────────────
+    # ── Select country ───────────────────────────────────────────────────────
     if data == "menu_select_country":
         player = Player.get(user.id)
         if player and player.is_registered:
@@ -53,6 +57,7 @@ async def menu_callback_handler(
 
     player.touch()
 
+    # ── Enter game ───────────────────────────────────────────────────────────
     if data == "menu_enter":
         country = Country.get_by_id(player.country_id)  # type: ignore[arg-type]
         name = country.country_name if country else "—"
@@ -61,32 +66,57 @@ async def menu_callback_handler(
             reply_markup=MAIN_MENU_KEYBOARD,
         )
 
+    # ── Country panel ─────────────────────────────────────────────────────────
     elif data == "menu_country_panel":
-        await query.message.reply_text(f"🏛 پنل کشور\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+        await _send_country_panel(query, player.country_id)  # type: ignore[arg-type]
 
+    # ── Placeholder sections ──────────────────────────────────────────────────
     elif data == "menu_economy":
         await query.message.reply_text(f"💰 اقتصاد\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_industry":
         await query.message.reply_text(f"🏭 صنعت\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_market":
         await query.message.reply_text(f"🛒 فروشگاه جهانی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_military":
         await query.message.reply_text(f"🪖 ارتش\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_operations":
         await query.message.reply_text(f"⚔️ عملیات نظامی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_diplomacy":
         await query.message.reply_text(f"🤝 دیپلماسی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_technology":
         await query.message.reply_text(f"🔬 فناوری\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_news":
         await query.message.reply_text(f"📰 اخبار جهان\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-
     elif data == "menu_leaderboard":
         await query.message.reply_text(f"🏆 رتبه‌بندی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+
+# ── Country panel helper ──────────────────────────────────────────────────────
+
+async def _send_country_panel(query, country_id: int) -> None:
+    """Load all country data from SQLite and send the full panel."""
+    country   = Country.get_by_id(country_id)
+    eco       = Country.get_economy(country_id)
+    buildings = Country.get_buildings(country_id)
+    resources = Country.get_resources(country_id)
+    technology = Country.get_technology(country_id)
+    military  = Country.get_military(country_id)
+    alliances = Country.get_alliance_names(country_id)
+
+    if not country:
+        await query.message.reply_text(
+            "❌ اطلاعات کشور یافت نشد.", reply_markup=MAIN_MENU_KEYBOARD
+        )
+        return
+
+    messages = build_country_panel(
+        country, eco, buildings, resources, technology, military, alliances
+    )
+
+    # Send all sections; attach the back button only to the last message
+    for i, text in enumerate(messages):
+        is_last = (i == len(messages) - 1)
+        await query.message.reply_text(
+            text,
+            reply_markup=BACK_BUTTON if is_last else None,
+        )
