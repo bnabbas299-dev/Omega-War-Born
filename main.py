@@ -1,44 +1,27 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+
 from config import BOT_TOKEN
-
-WELCOME_MESSAGE = (
-    "🌍⚔️ به OMEGAWARBORN خوش آمدید ⚔️🌍\n\n"
-    "🏛 به میدان نبردی خوش آمدید که سرنوشت جهان در آن رقم می‌خورد.\n"
-    "🌐 فرماندهی این جهان در اختیار MBN Global Command است.\n\n"
-    "🛡 کشور خود را انتخاب کنید.\n"
-    "🤝 اتحادهای قدرتمند تشکیل دهید.\n"
-    "👑 سرنوشت ملت خود را رقم بزنید.\n"
-    "🔥 تاریخ را از نو بنویسید.\n\n"
-    "🚨 هر تصمیم، آینده جهان را تغییر می‌دهد.\n"
-    "💥 هر نبرد، موازنه قدرت را دگرگون می‌کند.\n"
-    "🌍 تنها یک قدرت، بر جهان سلطه خواهد یافت.\n\n"
-    "⏳ شمارش معکوس به پایان رسید...\n"
-    "⚔️ جنگ، از همین لحظه آغاز می‌شود."
-)
-
-COUNTRY_KEYBOARD = InlineKeyboardMarkup([
-    [
-        InlineKeyboardButton("🇮🇷 ایران", callback_data="country_iran"),
-        InlineKeyboardButton("🇺🇸 آمریکا", callback_data="country_usa"),
-    ],
-    [
-        InlineKeyboardButton("🇷🇺 روسیه", callback_data="country_russia"),
-        InlineKeyboardButton("🇮🇱 اسرائیل", callback_data="country_israel"),
-    ],
-])
-
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(
-        WELCOME_MESSAGE,
-        reply_markup=COUNTRY_KEYBOARD,
-    )
+from database.setup import init_db
+from handlers.start import start_handler
+from handlers.registration import country_callback_handler
+from handlers.menu import menu_callback_handler
 
 
 def main() -> None:
+    # Initialise database on startup
+    init_db()
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
+
+    # Commands
+    app.add_handler(CommandHandler("start", start_handler))
+
+    # Callback queries — registration (country selection)
+    app.add_handler(CallbackQueryHandler(country_callback_handler, pattern=r"^country_"))
+
+    # Callback queries — main menu sections
+    app.add_handler(CallbackQueryHandler(menu_callback_handler, pattern=r"^menu_"))
+
     print("OMEGAWARBORN bot is running...")
     app.run_polling()
 
