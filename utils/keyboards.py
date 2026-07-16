@@ -22,33 +22,36 @@ COUNTRY_KEYBOARD = InlineKeyboardMarkup([
 
 MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
     [
-        InlineKeyboardButton("🎮 ورود به بازی",      callback_data="menu_enter"),
-        InlineKeyboardButton("🌍 انتخاب کشور",       callback_data="menu_select_country"),
+        InlineKeyboardButton("🌅 پایان روز",          callback_data="menu_end_day"),
     ],
     [
-        InlineKeyboardButton("🏛 پنل کشور",          callback_data="menu_country_panel"),
-        InlineKeyboardButton("💰 اقتصاد",             callback_data="menu_economy"),
+        InlineKeyboardButton("🎮 ورود به بازی",        callback_data="menu_enter"),
+        InlineKeyboardButton("🌍 انتخاب کشور",         callback_data="menu_select_country"),
     ],
     [
-        InlineKeyboardButton("🏭 صنعت",              callback_data="menu_industry"),
-        InlineKeyboardButton("🛒 فروشگاه جهانی",    callback_data="menu_market"),
+        InlineKeyboardButton("🏛 پنل کشور",            callback_data="menu_country_panel"),
+        InlineKeyboardButton("💰 اقتصاد",               callback_data="menu_economy"),
     ],
     [
-        InlineKeyboardButton("🪖 ارتش",              callback_data="menu_military"),
-        InlineKeyboardButton("⚔️ عملیات نظامی",      callback_data="menu_operations"),
+        InlineKeyboardButton("🏭 صنعت",                callback_data="menu_industry"),
+        InlineKeyboardButton("🛒 فروشگاه جهانی",      callback_data="menu_market"),
     ],
     [
-        InlineKeyboardButton("🤝 دیپلماسی",         callback_data="menu_diplomacy"),
-        InlineKeyboardButton("🔬 فناوری",            callback_data="menu_technology"),
+        InlineKeyboardButton("🪖 ارتش",                callback_data="menu_military"),
+        InlineKeyboardButton("⚔️ عملیات نظامی",        callback_data="menu_operations"),
     ],
     [
-        InlineKeyboardButton("📰 اخبار جهان",        callback_data="menu_news"),
-        InlineKeyboardButton("🏆 رتبه‌بندی",         callback_data="menu_leaderboard"),
+        InlineKeyboardButton("🤝 دیپلماسی",           callback_data="menu_diplomacy"),
+        InlineKeyboardButton("🔬 فناوری",              callback_data="menu_technology"),
+    ],
+    [
+        InlineKeyboardButton("📰 اخبار جهان",          callback_data="menu_news"),
+        InlineKeyboardButton("🏆 رتبه‌بندی",           callback_data="menu_leaderboard"),
     ],
 ])
 
 # ── Back to main menu ────────────────────────────────────────────────────────
 
 BACK_TO_MENU = InlineKeyboardMarkup([
-    [InlineKeyboardButton("🔙 بازگشت به منو", callback_data="menu_back")],
+    [InlineKeyboardButton("⬅ بازگشت به منوی اصلی", callback_data="menu_back")],
 ])

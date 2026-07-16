@@ -8,8 +8,9 @@ from telegram.ext import ContextTypes
 
 from models.player import Player
 from models.country import Country
+from services.economy_service import next_day
 from utils.keyboards import MAIN_MENU_KEYBOARD, COUNTRY_KEYBOARD
-from utils.panel_builder import build_country_panel
+from utils.panel_builder import build_country_panel, build_end_day_report
 
 _NOT_REGISTERED = (
     "⚠️ شما هنوز کشوری انتخاب نکرده‌اید.\n"
@@ -56,19 +57,24 @@ async def menu_callback_handler(
         return
 
     player.touch()
+    country_id: int = player.country_id  # type: ignore[assignment]
 
     # ── Enter game ───────────────────────────────────────────────────────────
     if data == "menu_enter":
-        country = Country.get_by_id(player.country_id)  # type: ignore[arg-type]
+        country = Country.get_by_id(country_id)
         name = country.country_name if country else "—"
         await query.message.reply_text(
             f"🎮 وارد بازی شدید.\n🏛 کشور فعال: {name}",
             reply_markup=MAIN_MENU_KEYBOARD,
         )
 
-    # ── Country panel ─────────────────────────────────────────────────────────
+    # ── End of day ───────────────────────────────────────────────────────────
+    elif data == "menu_end_day":
+        await _handle_end_day(query, country_id)
+
+    # ── Country panel ────────────────────────────────────────────────────────
     elif data == "menu_country_panel":
-        await _send_country_panel(query, player.country_id)  # type: ignore[arg-type]
+        await _send_country_panel(query, country_id)
 
     # ── Placeholder sections ──────────────────────────────────────────────────
     elif data == "menu_economy":
@@ -91,17 +97,31 @@ async def menu_callback_handler(
         await query.message.reply_text(f"🏆 رتبه‌بندی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
 
 
+# ── End-of-day handler ────────────────────────────────────────────────────────
+
+async def _handle_end_day(query, country_id: int) -> None:
+    try:
+        report = next_day(country_id)
+    except Exception as exc:
+        await query.message.reply_text(
+            f"❌ خطا در پردازش پایان روز:\n{exc}", reply_markup=MAIN_MENU_KEYBOARD
+        )
+        return
+
+    text = build_end_day_report(report)
+    await query.message.reply_text(text, reply_markup=MAIN_MENU_KEYBOARD)
+
+
 # ── Country panel helper ──────────────────────────────────────────────────────
 
 async def _send_country_panel(query, country_id: int) -> None:
-    """Load all country data from SQLite and send the full panel."""
-    country   = Country.get_by_id(country_id)
-    eco       = Country.get_economy(country_id)
-    buildings = Country.get_buildings(country_id)
-    resources = Country.get_resources(country_id)
+    country    = Country.get_by_id(country_id)
+    eco        = Country.get_economy(country_id)
+    buildings  = Country.get_buildings(country_id)
+    resources  = Country.get_resources(country_id)
     technology = Country.get_technology(country_id)
-    military  = Country.get_military(country_id)
-    alliances = Country.get_alliance_names(country_id)
+    military   = Country.get_military(country_id)
+    alliances  = Country.get_alliance_names(country_id)
 
     if not country:
         await query.message.reply_text(
@@ -113,7 +133,6 @@ async def _send_country_panel(query, country_id: int) -> None:
         country, eco, buildings, resources, technology, military, alliances
     )
 
-    # Send all sections; attach the back button only to the last message
     for i, text in enumerate(messages):
         is_last = (i == len(messages) - 1)
         await query.message.reply_text(

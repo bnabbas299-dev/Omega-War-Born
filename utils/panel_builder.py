@@ -1,7 +1,7 @@
 """
-Country panel text builder.
-Assembles all sections dynamically from DB rows.
-Returns a list of message strings (split to stay under Telegram's 4096-char limit).
+Panel text builders.
+Assembles multi-section displays dynamically from DB rows.
+Each public function returns a list of strings guaranteed ≤ 4096 chars each.
 """
 
 from __future__ import annotations
@@ -20,6 +20,14 @@ def _n(value) -> str:
         return str(value) if value is not None else "۰"
 
 
+def _f(value) -> str:
+    """Format a float/large currency value with comma separators."""
+    try:
+        return f"{float(value):,.0f}"
+    except (TypeError, ValueError):
+        return str(value) if value is not None else "۰"
+
+
 def _tech_flag(value: int) -> str:
     return "✅ فعال" if value else "❌ غیرفعال"
 
@@ -30,7 +38,26 @@ def _alliance_block(alliances: list[str]) -> str:
     return "\n".join(f"• {a}" for a in alliances)
 
 
-# ── Section builders ──────────────────────────────────────────────────────────
+def _split_messages(sections: list[str]) -> list[str]:
+    """Pack sections into messages, each ≤ 4096 chars."""
+    messages: list[str] = []
+    current = ""
+    for section in sections:
+        candidate = (current + "\n\n" + section).strip() if current else section
+        if len(candidate) <= 4096:
+            current = candidate
+        else:
+            if current:
+                messages.append(current)
+            current = section
+    if current:
+        messages.append(current)
+    return messages
+
+
+# ═══════════════════════════════════════════════════════════════
+# COUNTRY PANEL
+# ═══════════════════════════════════════════════════════════════
 
 def _section_header(country) -> str:
     return (
@@ -54,12 +81,12 @@ def _section_finance(country, eco: sqlite3.Row) -> str:
     return (
         f"{SEP}\n\n"
         f"💵 وضعیت مالی\n\n"
-        f"💰 بودجه فعلی:\n{_n(country.budget)}\n\n"
+        f"💰 بودجه فعلی:\n{_f(country.budget)}\n\n"
         f"📥 درآمد روزانه\n\n"
-        f"💰 مالیات:\n{_n(eco['daily_tax_income'])}\n\n"
-        f"🏭 صنعت:\n{_n(eco['daily_industry_income'])}\n\n"
-        f"🌍 صادرات:\n{_n(eco['daily_export_income'])}\n\n"
-        f"📉 هزینه نگهداری:\n{_n(eco['daily_maintenance'])}"
+        f"💰 مالیات:\n{_f(eco['daily_tax_income'])}\n\n"
+        f"🏭 صنعت:\n{_f(eco['daily_industry_income'])}\n\n"
+        f"🌍 صادرات:\n{_f(eco['daily_export_income'])}\n\n"
+        f"📉 هزینه نگهداری:\n{_f(eco['daily_maintenance'])}"
     )
 
 
@@ -154,8 +181,6 @@ def _section_diplomacy(alliances: list[str]) -> str:
     )
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
-
 def build_country_panel(
     country,
     eco: Optional[sqlite3.Row],
@@ -165,11 +190,13 @@ def build_country_panel(
     military: Optional[sqlite3.Row],
     alliances: list[str],
 ) -> list[str]:
-    """
-    Build the full country panel as a list of message strings.
-    Each string is guaranteed to be ≤ 4096 characters (Telegram's limit).
-    Sections are grouped so they split cleanly between messages.
-    """
+    """Full country panel split into ≤4096-char messages."""
+    _eco       = eco       or {}
+    _buildings = buildings or {}
+    _resources = resources or {}
+    _tech      = technology or {}
+    _mil       = military  or {}
+
     sections = [
         _section_header(country),
         _section_finance(country, eco) if eco else f"{SEP}\n\n💵 وضعیت مالی\n\nاطلاعات موجود نیست",
@@ -180,20 +207,46 @@ def build_country_panel(
         _section_military(military) if military else f"{SEP}\n\n🪖 تجهیزات نظامی\n\nاطلاعات موجود نیست",
         _section_diplomacy(alliances),
     ]
+    return _split_messages(sections)
 
-    messages: list[str] = []
-    current = ""
 
-    for section in sections:
-        candidate = (current + "\n\n" + section).strip() if current else section
-        if len(candidate) <= 4096:
-            current = candidate
-        else:
-            if current:
-                messages.append(current)
-            current = section
+# ═══════════════════════════════════════════════════════════════
+# END-OF-DAY REPORT
+# ═══════════════════════════════════════════════════════════════
 
-    if current:
-        messages.append(current)
+def build_end_day_report(report: dict) -> str:
+    """
+    Build the end-of-day report message from the dict returned by
+    EconomyService.next_day().
+    """
+    income      = report["income"]
+    maintenance = report["maintenance"]
+    day         = report["day"]
+    b_before    = report["budget_before"]
+    b_after     = report["budget_after"]
+    net         = income["total"] - maintenance
 
-    return messages
+    surplus_emoji = "📈" if net >= 0 else "📉"
+    net_label     = "مازاد روزانه" if net >= 0 else "کسری روزانه"
+
+    return (
+        f"🌅 روز {day} به پایان رسید\n\n"
+        f"{SEP}\n\n"
+        f"📥 درآمد روزانه\n\n"
+        f"  💰 مالیات:         {_f(income['tax'])}\n"
+        f"  🏭 صنعت:           {_f(income['industry'])}\n"
+        f"  🌍 صادرات:         {_f(income['exports'])}\n"
+        f"  ─────────────────────\n"
+        f"  📊 جمع درآمد:      {_f(income['total'])}\n\n"
+        f"{SEP}\n\n"
+        f"📉 هزینه‌های روزانه\n\n"
+        f"  🔧 نگهداری:        {_f(maintenance)}\n\n"
+        f"{SEP}\n\n"
+        f"  {surplus_emoji} {net_label}:  {_f(abs(net))}\n\n"
+        f"{SEP}\n\n"
+        f"💵 بودجه قبل از روز:\n"
+        f"  {_f(b_before)}\n\n"
+        f"💵 بودجه بعد از روز:\n"
+        f"  {_f(b_after)}\n\n"
+        f"{SEP}"
+    )
