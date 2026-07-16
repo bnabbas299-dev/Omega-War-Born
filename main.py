@@ -6,7 +6,7 @@ Registers all handlers and starts the bot in polling mode.
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 
 from config import BOT_TOKEN
-from database import init_db
+from database import initialize_database
 
 # ── Handlers ────────────────────────────────────────────────────────────────
 from handlers.start       import start_handler
@@ -26,8 +26,8 @@ from handlers.admin       import admin_command_handler
 
 
 def main() -> None:
-    # Initialise database tables on startup
-    init_db()
+    # Initialise all database tables on startup
+    initialize_database()
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
