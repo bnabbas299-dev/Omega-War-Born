@@ -1,8 +1,13 @@
+"""
+/start command handler.
+Creates a new player profile on first visit; returns returning players to the main menu.
+"""
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from keyboards.menus import COUNTRY_KEYBOARD, MAIN_MENU_KEYBOARD
 from models.player import Player
+from utils.keyboards import COUNTRY_KEYBOARD, MAIN_MENU_KEYBOARD
 
 WELCOME_MESSAGE = (
     "🌍⚔️ به OMEGAWARBORN خوش آمدید ⚔️🌍\n\n"
@@ -19,34 +24,23 @@ WELCOME_MESSAGE = (
     "⚔️ جنگ، از همین لحظه آغاز می‌شود."
 )
 
-ALREADY_REGISTERED_MESSAGE = (
-    "⚔️ خوش برگشتید، فرمانده!\n\n"
-    "از منوی زیر ادامه دهید:"
-)
-
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     player = Player.get(user.id)
 
     if player and player.is_registered:
-        # Returning player — show main menu
         await update.message.reply_text(
-            ALREADY_REGISTERED_MESSAGE,
+            f"⚔️ خوش برگشتید، فرمانده {player.first_name}!\n\nاز منوی زیر ادامه دهید:",
             reply_markup=MAIN_MENU_KEYBOARD,
         )
         return
 
     if not player:
-        # First visit — create an unregistered profile
         Player.create(
             telegram_id=user.id,
             username=user.username,
             first_name=user.first_name,
         )
 
-    # Show welcome + country selection
-    await update.message.reply_text(
-        WELCOME_MESSAGE,
-        reply_markup=COUNTRY_KEYBOARD,
-    )
+    await update.message.reply_text(WELCOME_MESSAGE, reply_markup=COUNTRY_KEYBOARD)
