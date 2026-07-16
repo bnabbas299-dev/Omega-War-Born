@@ -1,58 +1,92 @@
 """
 Main menu dispatcher.
-Routes menu_ callbacks to the appropriate section message.
+Routes every menu_ callback to the correct section.
+Unimplemented sections show a clear placeholder.
 """
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from models.player import Player
-from utils.keyboards import MAIN_MENU_KEYBOARD
+from models.country import Country
+from utils.keyboards import MAIN_MENU_KEYBOARD, COUNTRY_KEYBOARD
 
-_NOT_REGISTERED = "لطفاً ابتدا /start را بزنید و کشور خود را انتخاب کنید."
-
-# Map callback_data → (display title, emoji)
-_SECTION_MAP = {
-    "menu_profile":     ("پروفایل",      "🏠"),
-    "menu_economy":     ("اقتصاد",       "🏦"),
-    "menu_buildings":   ("ساختمان‌ها",   "🏗"),
-    "menu_military":    ("ارتش",         "🪖"),
-    "menu_market":      ("بازار",        "🛒"),
-    "menu_diplomacy":   ("دیپلماسی",    "🤝"),
-    "menu_research":    ("تحقیقات",      "🔬"),
-    "menu_war":         ("جنگ",          "⚔️"),
-    "menu_events":      ("رویدادها",     "📰"),
-    "menu_leaderboard": ("رتبه‌بندی",    "🏆"),
-    "menu_map":         ("نقشه جهان",    "🌍"),
-    "menu_settings":    ("تنظیمات",      "⚙️"),
-}
+_NOT_REGISTERED = (
+    "⚠️ شما هنوز کشوری انتخاب نکرده‌اید.\n"
+    "لطفاً ابتدا /start را بزنید."
+)
+_COMING_SOON = "🔧 این بخش به زودی پیاده‌سازی می‌شود."
 
 
-async def menu_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def menu_callback_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     query = update.callback_query
     await query.answer()
 
-    user = query.from_user
-    player = Player.get(user.id)
-
-    if not player or not player.is_registered:
-        await query.message.reply_text(_NOT_REGISTERED)
-        return
-
     data = query.data
+    user = query.from_user
 
+    # ── Back to menu ─────────────────────────────────────────────────────────
     if data == "menu_back":
+        await query.message.reply_text("🎮 منوی اصلی:", reply_markup=MAIN_MENU_KEYBOARD)
+        return
+
+    # ── Select country (re-show if not yet registered) ───────────────────────
+    if data == "menu_select_country":
+        player = Player.get(user.id)
+        if player and player.is_registered:
+            await query.message.reply_text(
+                "✅ شما قبلاً کشوری انتخاب کرده‌اید.", reply_markup=MAIN_MENU_KEYBOARD
+            )
+        else:
+            await query.message.reply_text(
+                "🌍 لطفاً کشور خود را انتخاب کنید:", reply_markup=COUNTRY_KEYBOARD
+            )
+        return
+
+    # ── All other sections require registration ──────────────────────────────
+    player = Player.get(user.id)
+    if not player or not player.is_registered:
+        await query.message.reply_text(_NOT_REGISTERED, reply_markup=MAIN_MENU_KEYBOARD)
+        return
+
+    player.touch()
+
+    if data == "menu_enter":
+        country = Country.get_by_id(player.country_id)  # type: ignore[arg-type]
+        name = country.country_name if country else "—"
         await query.message.reply_text(
-            "🎮 منوی اصلی:", reply_markup=MAIN_MENU_KEYBOARD
+            f"🎮 وارد بازی شدید.\n🏛 کشور فعال: {name}",
+            reply_markup=MAIN_MENU_KEYBOARD,
         )
-        return
 
-    section = _SECTION_MAP.get(data)
-    if not section:
-        return
+    elif data == "menu_country_panel":
+        await query.message.reply_text(f"🏛 پنل کشور\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
 
-    title, emoji = section
-    await query.message.reply_text(
-        f"{emoji} بخش {title} به زودی پیاده‌سازی می‌شود.",
-        reply_markup=MAIN_MENU_KEYBOARD,
-    )
+    elif data == "menu_economy":
+        await query.message.reply_text(f"💰 اقتصاد\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_industry":
+        await query.message.reply_text(f"🏭 صنعت\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_market":
+        await query.message.reply_text(f"🛒 فروشگاه جهانی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_military":
+        await query.message.reply_text(f"🪖 ارتش\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_operations":
+        await query.message.reply_text(f"⚔️ عملیات نظامی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_diplomacy":
+        await query.message.reply_text(f"🤝 دیپلماسی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_technology":
+        await query.message.reply_text(f"🔬 فناوری\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_news":
+        await query.message.reply_text(f"📰 اخبار جهان\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+
+    elif data == "menu_leaderboard":
+        await query.message.reply_text(f"🏆 رتبه‌بندی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)

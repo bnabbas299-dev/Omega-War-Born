@@ -5,9 +5,6 @@ Single source of truth for all schema definitions.
 
 Usage:
     from database import get_connection, initialize_database
-
-Call initialize_database() once at bot startup to create all tables
-and indexes if they do not already exist.
 """
 
 import sqlite3
@@ -38,28 +35,27 @@ def get_connection() -> sqlite3.Connection:
 _SCHEMA = """
 -- ============================================================
 -- 1. COUNTRIES
---    Created before players to allow the FK from players.
---    leader_id is populated after the first player registers,
---    so it is nullable and not a hard FK (circular reference).
+--    leader_id is nullable (set after first player registers).
+--    Circular ref (countries ↔ players) handled at app level.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS countries (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT,
     country_name          TEXT    NOT NULL UNIQUE,
-    leader_id             INTEGER,                    -- references players(telegram_id); managed at app level
+    leader_id             INTEGER,
     budget                REAL    NOT NULL DEFAULT 0,
     population            INTEGER NOT NULL DEFAULT 0,
     active_population     INTEGER NOT NULL DEFAULT 0,
     available_recruits    INTEGER NOT NULL DEFAULT 0,
-    economy_level         INTEGER NOT NULL DEFAULT 1,
-    military_level        INTEGER NOT NULL DEFAULT 1,
+    economy_level         TEXT    NOT NULL DEFAULT 'سطح پایه',
+    military_level        TEXT    NOT NULL DEFAULT 'سطح پایه',
     technology_level      INTEGER NOT NULL DEFAULT 1,
-    industry_level        INTEGER NOT NULL DEFAULT 1,
-    public_satisfaction   INTEGER NOT NULL DEFAULT 50,   -- 0-100
-    government_popularity INTEGER NOT NULL DEFAULT 50,   -- 0-100
-    global_reputation     INTEGER NOT NULL DEFAULT 50,   -- 0-100
-    energy_security       INTEGER NOT NULL DEFAULT 50,   -- 0-100
-    food_security         INTEGER NOT NULL DEFAULT 50,   -- 0-100
-    current_day           INTEGER NOT NULL DEFAULT 1,
+    industry_level        TEXT    NOT NULL DEFAULT 'سطح پایه',
+    public_satisfaction   INTEGER NOT NULL DEFAULT 50,
+    government_popularity INTEGER NOT NULL DEFAULT 50,
+    global_reputation     TEXT    NOT NULL DEFAULT 'پایه',
+    energy_security       TEXT    NOT NULL DEFAULT 'پایه',
+    food_security         TEXT    NOT NULL DEFAULT 'پایه',
+    current_day           INTEGER NOT NULL DEFAULT 0,
     created_at            TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
     updated_at            TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
@@ -80,7 +76,7 @@ CREATE TABLE IF NOT EXISTS players (
     is_banned    INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_players_country   ON players(country_id);
+CREATE INDEX IF NOT EXISTS idx_players_country    ON players(country_id);
 CREATE INDEX IF NOT EXISTS idx_players_last_online ON players(last_online);
 
 -- ============================================================
@@ -143,7 +139,7 @@ CREATE TABLE IF NOT EXISTS military (
     submarines          INTEGER NOT NULL DEFAULT 0,
     patrol_boats        INTEGER NOT NULL DEFAULT 0,
     missiles            INTEGER NOT NULL DEFAULT 0,
-    army_experience     INTEGER NOT NULL DEFAULT 0,
+    army_experience     TEXT    NOT NULL DEFAULT 'تازه‌کار',
     updated_at          TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
@@ -154,7 +150,7 @@ CREATE TABLE IF NOT EXISTS technology (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id        INTEGER NOT NULL UNIQUE REFERENCES countries(id) ON DELETE CASCADE,
     technology_level  INTEGER NOT NULL DEFAULT 1,
-    military_ai       INTEGER NOT NULL DEFAULT 0,   -- 0 = locked, 1 = unlocked
+    military_ai       INTEGER NOT NULL DEFAULT 0,
     cyber_security    INTEGER NOT NULL DEFAULT 0,
     satellite_network INTEGER NOT NULL DEFAULT 0,
     quantum_lab       INTEGER NOT NULL DEFAULT 0,
@@ -200,8 +196,8 @@ CREATE TABLE IF NOT EXISTS alliance_members (
     UNIQUE (alliance_id, country_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_alliance_members_country   ON alliance_members(country_id);
-CREATE INDEX IF NOT EXISTS idx_alliance_members_alliance  ON alliance_members(alliance_id);
+CREATE INDEX IF NOT EXISTS idx_alliance_members_country  ON alliance_members(country_id);
+CREATE INDEX IF NOT EXISTS idx_alliance_members_alliance ON alliance_members(alliance_id);
 
 -- ============================================================
 -- 10. WARS
@@ -210,7 +206,7 @@ CREATE TABLE IF NOT EXISTS wars (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker   INTEGER NOT NULL REFERENCES countries(id) ON DELETE RESTRICT,
     defender   INTEGER NOT NULL REFERENCES countries(id) ON DELETE RESTRICT,
-    status     TEXT    NOT NULL DEFAULT 'active'   CHECK(status IN ('active','ceasefire','ended')),
+    status     TEXT    NOT NULL DEFAULT 'active' CHECK(status IN ('active','ceasefire','ended')),
     winner     INTEGER REFERENCES countries(id),
     start_date TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
     end_date   TEXT,
@@ -230,7 +226,8 @@ CREATE TABLE IF NOT EXISTS construction_queue (
     building_name TEXT    NOT NULL,
     start_time    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
     finish_time   TEXT    NOT NULL,
-    status        TEXT    NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','completed','cancelled'))
+    status        TEXT    NOT NULL DEFAULT 'pending'
+                          CHECK(status IN ('pending','in_progress','completed','cancelled'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_construction_country ON construction_queue(country_id);
@@ -256,12 +253,12 @@ CREATE INDEX IF NOT EXISTS idx_purchase_time    ON purchase_history(purchase_tim
 -- 13. BATTLE HISTORY
 -- ============================================================
 CREATE TABLE IF NOT EXISTS battle_history (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    war_id            INTEGER NOT NULL REFERENCES wars(id) ON DELETE CASCADE,
-    battle_result     TEXT    NOT NULL,     -- 'attacker_won' | 'defender_won' | 'draw'
-    casualties        TEXT,                 -- JSON: {attacker: n, defender: n}
-    equipment_losses  TEXT,                 -- JSON: {attacker: {...}, defender: {...}}
-    battle_date       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    war_id           INTEGER NOT NULL REFERENCES wars(id) ON DELETE CASCADE,
+    battle_result    TEXT    NOT NULL,
+    casualties       TEXT,
+    equipment_losses TEXT,
+    battle_date      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_battle_history_war  ON battle_history(war_id);
@@ -274,7 +271,7 @@ CREATE TABLE IF NOT EXISTS world_events (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     title       TEXT NOT NULL,
     description TEXT,
-    effect      TEXT,    -- JSON: {resource: delta, ...}
+    effect      TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
@@ -303,7 +300,6 @@ def initialize_database() -> None:
     """
     conn = get_connection()
     try:
-        # executescript requires autocommit mode (no open transaction)
         conn.executescript(_SCHEMA)
         conn.commit()
         print("[DB] Database initialised successfully.")

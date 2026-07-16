@@ -1,6 +1,8 @@
 """
-/start command handler.
-Creates a new player profile on first visit; returns returning players to the main menu.
+/start handler.
+- First visit  → create player row + show country selection.
+- Returning    → update last_online + show main menu.
+- Banned       → block silently.
 """
 
 from telegram import Update
@@ -24,23 +26,40 @@ WELCOME_MESSAGE = (
     "⚔️ جنگ، از همین لحظه آغاز می‌شود."
 )
 
+SELECT_COUNTRY_MESSAGE = (
+    "🌍 لطفاً کشور خود را انتخاب کنید:\n\n"
+    "⚠️ هر کشور فقط یک بار قابل انتخاب است."
+)
+
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     player = Player.get(user.id)
 
+    # ── Banned ───────────────────────────────────────────────────────────────
+    if player and player.is_banned:
+        await update.message.reply_text("🚫 حساب شما مسدود شده است.")
+        return
+
+    # ── Returning registered player ──────────────────────────────────────────
     if player and player.is_registered:
+        player.touch()
         await update.message.reply_text(
             f"⚔️ خوش برگشتید، فرمانده {player.first_name}!\n\nاز منوی زیر ادامه دهید:",
             reply_markup=MAIN_MENU_KEYBOARD,
         )
         return
 
-    if not player:
-        Player.create(
-            telegram_id=user.id,
-            username=user.username,
-            first_name=user.first_name,
-        )
+    # ── Returning unregistered player ────────────────────────────────────────
+    if player and not player.is_registered:
+        await update.message.reply_text(SELECT_COUNTRY_MESSAGE, reply_markup=COUNTRY_KEYBOARD)
+        return
 
-    await update.message.reply_text(WELCOME_MESSAGE, reply_markup=COUNTRY_KEYBOARD)
+    # ── Brand-new player ─────────────────────────────────────────────────────
+    Player.create(
+        telegram_id=user.id,
+        username=user.username,
+        first_name=user.first_name,
+    )
+    await update.message.reply_text(WELCOME_MESSAGE)
+    await update.message.reply_text(SELECT_COUNTRY_MESSAGE, reply_markup=COUNTRY_KEYBOARD)

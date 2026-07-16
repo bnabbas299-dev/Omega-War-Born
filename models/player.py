@@ -1,36 +1,34 @@
 """
-Player model — all database operations for the players table.
+Player model — database operations for the players table.
 """
 
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
 from typing import Optional
 
 from database import get_connection
 
 
 class Player:
-    """Represents a single player row with typed attributes."""
+    """Typed wrapper around a players row."""
 
     def __init__(self, row: sqlite3.Row) -> None:
         self.telegram_id: int        = row["telegram_id"]
         self.username: Optional[str] = row["username"]
         self.first_name: str         = row["first_name"]
-        self.country: Optional[str]  = row["country"]
-        self.money: int              = row["money"]
-        self.gold: int               = row["gold"]
-        self.oil: int                = row["oil"]
-        self.food: int               = row["food"]
-        self.population: int         = row["population"]
-        self.army_power: int         = row["army_power"]
-        self.technology: int         = row["technology"]
-        self.diplomacy: str          = row["diplomacy"]
+        self.country_id: Optional[int] = row["country_id"]
         self.join_date: str          = row["join_date"]
-        self.is_registered: bool     = bool(row["is_registered"])
+        self.last_online: str        = row["last_online"]
+        self.is_admin: bool          = bool(row["is_admin"])
+        self.is_banned: bool         = bool(row["is_banned"])
 
-    # ── Queries ─────────────────────────────────────────────────────────────
+    @property
+    def is_registered(self) -> bool:
+        """True when the player has chosen a country."""
+        return self.country_id is not None
+
+    # ── Queries ──────────────────────────────────────────────────────────────
 
     @staticmethod
     def get(telegram_id: int) -> Optional["Player"]:
@@ -49,57 +47,37 @@ class Player:
         username: Optional[str],
         first_name: str,
     ) -> "Player":
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         conn = get_connection()
         with conn:
             conn.execute(
                 """
-                INSERT INTO players (telegram_id, username, first_name, join_date)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO players (telegram_id, username, first_name)
+                VALUES (?, ?, ?)
                 """,
-                (telegram_id, username, first_name, now),
+                (telegram_id, username, first_name),
             )
         conn.close()
         return Player.get(telegram_id)  # type: ignore[return-value]
 
-    # ── Mutations ────────────────────────────────────────────────────────────
+    # ── Mutations ─────────────────────────────────────────────────────────────
 
-    def register_country(self, country_key: str) -> None:
+    def set_country(self, country_id: int) -> None:
         conn = get_connection()
         with conn:
             conn.execute(
-                "UPDATE players SET country = ?, is_registered = 1 WHERE telegram_id = ?",
-                (country_key, self.telegram_id),
+                "UPDATE players SET country_id = ? WHERE telegram_id = ?",
+                (country_id, self.telegram_id),
             )
         conn.close()
-        self.country = country_key
-        self.is_registered = True
+        self.country_id = country_id
 
-    def update_resources(self, **fields: int) -> None:
-        """Generic resource update — pass keyword args matching column names."""
-        if not fields:
-            return
-        cols = ", ".join(f"{k} = ?" for k in fields)
-        values = list(fields.values()) + [self.telegram_id]
+    def touch(self) -> None:
+        """Update last_online to now."""
         conn = get_connection()
         with conn:
             conn.execute(
-                f"UPDATE players SET {cols} WHERE telegram_id = ?", values
+                "UPDATE players SET last_online = strftime('%Y-%m-%d %H:%M:%S','now') "
+                "WHERE telegram_id = ?",
+                (self.telegram_id,),
             )
         conn.close()
-        for k, v in fields.items():
-            setattr(self, k, v)
-
-    @staticmethod
-    def top(limit: int = 10) -> list["Player"]:
-        """Return top players by army_power for the leaderboard."""
-        conn = get_connection()
-        try:
-            rows = conn.execute(
-                "SELECT * FROM players WHERE is_registered = 1 "
-                "ORDER BY army_power DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
-            return [Player(r) for r in rows]
-        finally:
-            conn.close()

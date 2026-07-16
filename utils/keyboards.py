@@ -1,5 +1,5 @@
 """
-All InlineKeyboardMarkup definitions for the bot.
+All InlineKeyboardMarkup definitions.
 Add new keyboards here as new systems are implemented.
 """
 
@@ -22,42 +22,33 @@ COUNTRY_KEYBOARD = InlineKeyboardMarkup([
 
 MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
     [
-        InlineKeyboardButton("🏠 پروفایل",    callback_data="menu_profile"),
-        InlineKeyboardButton("🏦 اقتصاد",     callback_data="menu_economy"),
+        InlineKeyboardButton("🎮 ورود به بازی",      callback_data="menu_enter"),
+        InlineKeyboardButton("🌍 انتخاب کشور",       callback_data="menu_select_country"),
     ],
     [
-        InlineKeyboardButton("🏗 ساختمان‌ها", callback_data="menu_buildings"),
-        InlineKeyboardButton("🪖 ارتش",       callback_data="menu_military"),
+        InlineKeyboardButton("🏛 پنل کشور",          callback_data="menu_country_panel"),
+        InlineKeyboardButton("💰 اقتصاد",             callback_data="menu_economy"),
     ],
     [
-        InlineKeyboardButton("🛒 بازار",      callback_data="menu_market"),
-        InlineKeyboardButton("🤝 دیپلماسی",  callback_data="menu_diplomacy"),
+        InlineKeyboardButton("🏭 صنعت",              callback_data="menu_industry"),
+        InlineKeyboardButton("🛒 فروشگاه جهانی",    callback_data="menu_market"),
     ],
     [
-        InlineKeyboardButton("🔬 تحقیقات",    callback_data="menu_research"),
-        InlineKeyboardButton("⚔️ جنگ",        callback_data="menu_war"),
+        InlineKeyboardButton("🪖 ارتش",              callback_data="menu_military"),
+        InlineKeyboardButton("⚔️ عملیات نظامی",      callback_data="menu_operations"),
     ],
     [
-        InlineKeyboardButton("📰 رویدادها",   callback_data="menu_events"),
-        InlineKeyboardButton("🏆 رتبه‌بندی",  callback_data="menu_leaderboard"),
+        InlineKeyboardButton("🤝 دیپلماسی",         callback_data="menu_diplomacy"),
+        InlineKeyboardButton("🔬 فناوری",            callback_data="menu_technology"),
     ],
     [
-        InlineKeyboardButton("🌍 نقشه جهان",  callback_data="menu_map"),
-        InlineKeyboardButton("⚙️ تنظیمات",    callback_data="menu_settings"),
+        InlineKeyboardButton("📰 اخبار جهان",        callback_data="menu_news"),
+        InlineKeyboardButton("🏆 رتبه‌بندی",         callback_data="menu_leaderboard"),
     ],
 ])
 
-# ── Back button (reusable) ───────────────────────────────────────────────────
+# ── Back to main menu ────────────────────────────────────────────────────────
 
 BACK_TO_MENU = InlineKeyboardMarkup([
     [InlineKeyboardButton("🔙 بازگشت به منو", callback_data="menu_back")],
 ])
-
-# ── Country name map ─────────────────────────────────────────────────────────
-
-COUNTRY_NAMES: dict[str, str] = {
-    "country_iran":   "🇮🇷 ایران",
-    "country_usa":    "🇺🇸 آمریکا",
-    "country_russia": "🇷🇺 روسیه",
-    "country_israel": "🇮🇱 اسرائیل",
-}

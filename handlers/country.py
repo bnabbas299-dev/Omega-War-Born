@@ -1,41 +1,44 @@
 """
 Country selection callback handler.
-Completes player registration and shows the main menu.
+Validates uniqueness, inserts all starting data, and shows the main menu.
 """
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from models.player import Player
-from utils.keyboards import COUNTRY_NAMES, COUNTRY_KEYBOARD, MAIN_MENU_KEYBOARD
-from utils.formatters import fmt, tech_level
+from models.country import Country, AVAILABLE_COUNTRIES
+from utils.keyboards import COUNTRY_KEYBOARD, MAIN_MENU_KEYBOARD
 
 
-def _confirmation_text(player: Player, country_label: str) -> str:
+def _confirmation_text(country_label: str) -> str:
     return (
-        f"✅ کشور شما با موفقیت ثبت شد.\n\n"
+        "✅ کشور شما با موفقیت ثبت شد.\n\n"
         f"🏛 کشور: {country_label}\n\n"
-        f"💰 سرمایه: {fmt(player.money)}\n"
-        f"🪙 طلا: {fmt(player.gold)}\n"
-        f"🛢 نفت: {fmt(player.oil)}\n"
-        f"🌾 غذا: {fmt(player.food)}\n"
-        f"👥 جمعیت: {fmt(player.population)}\n"
-        f"⚔ قدرت نظامی: {fmt(player.army_power)}\n"
-        f"🛰 فناوری: {tech_level(player.technology)}"
+        "💰 بودجه: 500 میلیارد دلار\n"
+        "👥 جمعیت: 50 میلیون نفر\n"
+        "😊 رضایت مردم: 80٪\n"
+        "⭐ محبوبیت دولت: 75٪\n"
+        "🔬 فناوری: سطح 1\n"
+        "🏭 صنعت: سطح پایه"
     )
 
 
-async def country_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def country_callback_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     query = update.callback_query
     await query.answer()
 
-    data = query.data
-    if data not in COUNTRY_NAMES:
+    data = query.data  # e.g. "country_iran"
+
+    if data not in AVAILABLE_COUNTRIES:
         return
 
     user = query.from_user
-    player = Player.get(user.id)
 
+    # ── Ensure player row exists ─────────────────────────────────────────────
+    player = Player.get(user.id)
     if not player:
         player = Player.create(
             telegram_id=user.id,
@@ -43,19 +46,42 @@ async def country_callback_handler(update: Update, context: ContextTypes.DEFAULT
             first_name=user.first_name,
         )
 
+    # ── Already registered ───────────────────────────────────────────────────
     if player.is_registered:
-        await query.edit_message_reply_markup(reply_markup=None)
+        await query.answer("✅ شما قبلاً کشور خود را انتخاب کرده‌اید.", show_alert=True)
         await query.message.reply_text(
-            "✅ شما قبلاً کشور خود را انتخاب کرده‌اید.",
-            reply_markup=MAIN_MENU_KEYBOARD,
+            "🎮 منوی اصلی:", reply_markup=MAIN_MENU_KEYBOARD
         )
         return
 
-    player.register_country(data)
-    country_label = COUNTRY_NAMES[data]
+    country_label = AVAILABLE_COUNTRIES[data]
+    # Strip flag + space to get the bare Persian name for DB storage
+    country_name = country_label.split(" ", 1)[1]
 
-    await query.edit_message_text(text=_confirmation_text(player, country_label))
+    # ── Country uniqueness check ─────────────────────────────────────────────
+    if Country.is_taken(country_name):
+        await query.answer("❌ این کشور قبلاً انتخاب شده است.", show_alert=True)
+        await query.edit_message_text(
+            "❌ این کشور قبلاً انتخاب شده است.\n\n"
+            "🌍 لطفاً کشور دیگری انتخاب کنید:",
+            reply_markup=COUNTRY_KEYBOARD,
+        )
+        return
+
+    # ── Create country + all satellite rows ──────────────────────────────────
+    country = Country.create(
+        country_name=country_name,
+        leader_telegram_id=user.id,
+    )
+
+    # ── Link player → country ────────────────────────────────────────────────
+    player.set_country(country.id)
+
+    # ── Confirmation message ─────────────────────────────────────────────────
+    await query.edit_message_text(text=_confirmation_text(country_label))
+
+    # ── Main menu ────────────────────────────────────────────────────────────
     await query.message.reply_text(
-        "🎮 به دنیای OMEGAWARBORN خوش آمدید، فرمانده!\nاز منوی زیر شروع کنید:",
+        "🎮 به OMEGAWARBORN خوش آمدید، فرمانده!\nاز منوی زیر شروع کنید:",
         reply_markup=MAIN_MENU_KEYBOARD,
     )
