@@ -37,7 +37,7 @@ MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
         InlineKeyboardButton("📋 پروژه‌های در حال ساخت",  callback_data="menu_queue"),
     ],
     [
-        InlineKeyboardButton("🏭 صنعت",                    callback_data="menu_industry"),
+        InlineKeyboardButton("🏭 کارخانه و تولید",        callback_data="menu_production"),
         InlineKeyboardButton("🛒 فروشگاه جهانی",          callback_data="menu_market"),
     ],
     [

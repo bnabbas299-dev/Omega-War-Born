@@ -232,6 +232,50 @@ CREATE TABLE IF NOT EXISTS world_news (
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 CREATE INDEX IF NOT EXISTS idx_world_news_date ON world_news(created_at);
+
+CREATE TABLE IF NOT EXISTS factories (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    country_id   INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
+    factory_type TEXT    NOT NULL,
+    count        INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
+    updated_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
+    UNIQUE(country_id, factory_type)
+);
+CREATE INDEX IF NOT EXISTS idx_factories_country ON factories(country_id);
+
+CREATE TABLE IF NOT EXISTS production_queue (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    country_id   INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
+    queue_type   TEXT    NOT NULL CHECK(queue_type IN ('factory','equipment')),
+    item_key     TEXT    NOT NULL,
+    item_name    TEXT    NOT NULL,
+    quantity     INTEGER NOT NULL DEFAULT 1,
+    cost         REAL    NOT NULL DEFAULT 0,
+    military_col TEXT,
+    factory_type TEXT,
+    start_time   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
+    finish_time  TEXT    NOT NULL,
+    status       TEXT    NOT NULL DEFAULT 'in_progress'
+                         CHECK(status IN ('in_progress','completed','cancelled')),
+    notified     INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_pq_country ON production_queue(country_id);
+CREATE INDEX IF NOT EXISTS idx_pq_status  ON production_queue(status);
+CREATE INDEX IF NOT EXISTS idx_pq_finish  ON production_queue(finish_time);
+
+CREATE TABLE IF NOT EXISTS production_history (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    country_id   INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
+    queue_type   TEXT    NOT NULL,
+    item_key     TEXT    NOT NULL,
+    item_name    TEXT    NOT NULL,
+    quantity     INTEGER NOT NULL DEFAULT 1,
+    cost         REAL    NOT NULL DEFAULT 0,
+    factory_type TEXT,
+    completed_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_ph_country ON production_history(country_id);
 """
 
 # ── Migrations ────────────────────────────────────────────────────────────────
