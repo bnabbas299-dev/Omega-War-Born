@@ -151,11 +151,14 @@ def _section_technology(t: sqlite3.Row) -> str:
     return (
         f"{SEP}\n\n"
         f"🔬 فناوری\n\n"
-        f"سطح فناوری:\n{t['technology_level']}\n\n"
-        f"Military AI:\n{_tech_flag(t['military_ai'])}\n\n"
-        f"Cyber Security:\n{_tech_flag(t['cyber_security'])}\n\n"
-        f"Satellite Network:\n{_tech_flag(t['satellite_network'])}\n\n"
-        f"Quantum Lab:\n{_tech_flag(t['quantum_lab'])}"
+        f"🔬 سطح فناوری:\n{_col(t, 'technology_level', 1)}\n\n"
+        f"🤖 هوش مصنوعی نظامی:\n{_tech_flag(_col(t, 'military_ai', 0))}\n\n"
+        f"💻 امنیت سایبری:\n{_tech_flag(_col(t, 'cyber_security', 0))}\n\n"
+        f"🛰 شبکه ماهواره‌ای:\n{_tech_flag(_col(t, 'satellite_network', 0))}\n\n"
+        f"⚛ آزمایشگاه کوانتوم:\n{_tech_flag(_col(t, 'quantum_lab', 0))}\n\n"
+        f"🏭 اتوماسیون صنعتی:\n{_tech_flag(_col(t, 'industrial_automation', 0))}\n\n"
+        f"⚡ شبکه انرژی هوشمند:\n{_tech_flag(_col(t, 'smart_energy_grid', 0))}\n\n"
+        f"🌐 شبکه اطلاعات ملی:\n{_tech_flag(_col(t, 'national_intelligence_network', 0))}"
     )
 
 

@@ -233,6 +233,49 @@ CREATE TABLE IF NOT EXISTS world_news (
 );
 CREATE INDEX IF NOT EXISTS idx_world_news_date ON world_news(created_at);
 
+CREATE TABLE IF NOT EXISTS technology_levels (
+    level           INTEGER PRIMARY KEY,
+    upgrade_cost    REAL    NOT NULL,
+    upgrade_minutes INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS technology_unlocks (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    country_id  INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
+    tech_key    TEXT    NOT NULL,
+    unlocked_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
+    UNIQUE(country_id, tech_key)
+);
+CREATE INDEX IF NOT EXISTS idx_tech_unlocks_country ON technology_unlocks(country_id);
+
+CREATE TABLE IF NOT EXISTS research_queue (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    country_id    INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
+    research_type TEXT    NOT NULL CHECK(research_type IN ('level_upgrade','special_tech')),
+    item_key      TEXT    NOT NULL,
+    item_name     TEXT    NOT NULL,
+    cost          REAL    NOT NULL DEFAULT 0,
+    start_time    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
+    finish_time   TEXT    NOT NULL,
+    status        TEXT    NOT NULL DEFAULT 'in_progress'
+                          CHECK(status IN ('in_progress','completed','cancelled')),
+    notified      INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_rq_country ON research_queue(country_id);
+CREATE INDEX IF NOT EXISTS idx_rq_status  ON research_queue(status);
+CREATE INDEX IF NOT EXISTS idx_rq_finish  ON research_queue(finish_time);
+
+CREATE TABLE IF NOT EXISTS research_history (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    country_id    INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
+    research_type TEXT    NOT NULL,
+    item_key      TEXT    NOT NULL,
+    item_name     TEXT    NOT NULL,
+    cost          REAL    NOT NULL DEFAULT 0,
+    completed_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_rh_country ON research_history(country_id);
+
 CREATE TABLE IF NOT EXISTS factories (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id   INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
@@ -292,13 +335,49 @@ _BUILDING_MIGRATIONS = {
     "national_park":  "INTEGER NOT NULL DEFAULT 0",
 }
 
+_TECH_MIGRATIONS = {
+    "industrial_automation":        "INTEGER NOT NULL DEFAULT 0",
+    "smart_energy_grid":            "INTEGER NOT NULL DEFAULT 0",
+    "national_intelligence_network":"INTEGER NOT NULL DEFAULT 0",
+}
+
+# Static seed for technology_levels reference table
+_LEVEL_UPGRADE_SEED = [
+    (2,  5_000_000_000,   30),
+    (3,  8_000_000_000,   45),
+    (4,  12_000_000_000,  60),
+    (5,  18_000_000_000,  120),
+    (6,  25_000_000_000,  180),
+    (7,  35_000_000_000,  300),
+    (8,  50_000_000_000,  360),
+    (9,  70_000_000_000,  480),
+    (10, 100_000_000_000, 600),
+]
+
 
 def _run_migrations(conn: sqlite3.Connection) -> None:
-    existing = {row["name"] for row in conn.execute("PRAGMA table_info(buildings)")}
+    # buildings columns
+    existing_b = {row["name"] for row in conn.execute("PRAGMA table_info(buildings)")}
     for col, defn in _BUILDING_MIGRATIONS.items():
-        if col not in existing:
+        if col not in existing_b:
             conn.execute(f"ALTER TABLE buildings ADD COLUMN {col} {defn}")
             print(f"[DB] Migration: added buildings.{col}")
+
+    # technology columns
+    existing_t = {row["name"] for row in conn.execute("PRAGMA table_info(technology)")}
+    for col, defn in _TECH_MIGRATIONS.items():
+        if col not in existing_t:
+            conn.execute(f"ALTER TABLE technology ADD COLUMN {col} {defn}")
+            print(f"[DB] Migration: added technology.{col}")
+
+    # Seed technology_levels if empty
+    count = conn.execute("SELECT COUNT(*) FROM technology_levels").fetchone()[0]
+    if count == 0:
+        conn.executemany(
+            "INSERT OR IGNORE INTO technology_levels (level, upgrade_cost, upgrade_minutes) VALUES (?,?,?)",
+            _LEVEL_UPGRADE_SEED,
+        )
+        print("[DB] Seeded technology_levels table.")
 
 
 # ── Public API ────────────────────────────────────────────────────────────────

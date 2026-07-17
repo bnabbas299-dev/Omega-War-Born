@@ -46,7 +46,7 @@ MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
     ],
     [
         InlineKeyboardButton("🤝 دیپلماسی",               callback_data="menu_diplomacy"),
-        InlineKeyboardButton("🔬 فناوری",                  callback_data="menu_technology"),
+        InlineKeyboardButton("🔬 فناوری و تحقیقات",      callback_data="menu_technology"),
     ],
     [
         InlineKeyboardButton("📰 اخبار جهان",              callback_data="menu_news"),

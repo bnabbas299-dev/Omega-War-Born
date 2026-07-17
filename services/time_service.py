@@ -9,6 +9,7 @@ from __future__ import annotations
 from telegram.ext import Application
 from services.building_service    import get_all_in_progress, mark_completed_and_update, CATALOG
 from services.production_service  import get_all_in_progress_global, finish_production, FACTORY_CATALOG
+from services.technology_service  import get_all_finished_global, finish_research, SPECIAL_TECH_CATALOG
 
 CHECK_INTERVAL = 60   # seconds
 
@@ -66,7 +67,6 @@ async def production_completion_job(context) -> None:
         if not leader_id:
             continue
 
-        # Build notification text
         if completed["queue_type"] == "factory":
             fac_info = FACTORY_CATALOG.get(completed["item_key"], {})
             fac_name = fac_info.get("name", completed["item_name"])
@@ -84,6 +84,52 @@ async def production_completion_job(context) -> None:
                 f"📦 تجهیز: {completed['item_name']}\n"
                 f"🔢 تعداد: {completed['quantity']:,}\n"
                 f"🏭 کارخانه: {_factory_label(completed['factory_type'])}\n\n"
+                f"{SEP}"
+            )
+
+        try:
+            await context.bot.send_message(chat_id=leader_id, text=text)
+        except Exception:
+            pass
+
+
+# ── Research completion (Phase 9) ─────────────────────────────────────────────
+
+async def research_completion_job(context) -> None:
+    """Checks research_queue every minute, completes finished items, notifies leaders."""
+    finished_rows = get_all_finished_global()
+    if not finished_rows:
+        return
+
+    for row in finished_rows:
+        queue_id  = row["id"]
+        leader_id = row["leader_id"]
+
+        completed = finish_research(queue_id)
+        if not completed:
+            continue
+
+        if not leader_id:
+            continue
+
+        if completed["research_type"] == "level_upgrade":
+            item_key = completed["item_key"]
+            target   = int(item_key.replace("level_", "")) if item_key.startswith("level_") else "?"
+            text = (
+                "📈 ارتقاء سطح فناوری تکمیل شد!\n\n"
+                f"{SEP}\n\n"
+                f"🔬 سطح فناوری جدید: {target}\n\n"
+                f"✅ فناوری کشور شما ارتقاء یافت.\n\n"
+                f"{SEP}"
+            )
+        else:
+            spec = SPECIAL_TECH_CATALOG.get(completed["item_key"], {})
+            name = spec.get("name", completed["item_name"])
+            text = (
+                "✅ تحقیق تکمیل شد.\n\n"
+                f"{SEP}\n\n"
+                f"🔬 فناوری: {name}\n\n"
+                f"اکنون فعال است.\n\n"
                 f"{SEP}"
             )
 
@@ -114,4 +160,9 @@ def register_jobs(app: Application) -> None:
         production_completion_job,
         interval=CHECK_INTERVAL,
         first=15,
+    )
+    app.job_queue.run_repeating(
+        research_completion_job,
+        interval=CHECK_INTERVAL,
+        first=20,
     )

@@ -9,9 +9,10 @@ from telegram.ext import ContextTypes
 from models.player import Player
 from models.country import Country
 from services.economy_service import next_day
-from handlers.buildings  import show_building_list, show_queue
-from handlers.market     import show_market
-from handlers.production import show_production_menu
+from handlers.buildings   import show_building_list, show_queue
+from handlers.market      import show_market
+from handlers.production  import show_production_menu
+from handlers.technology  import show_technology_menu
 from utils.keyboards import MAIN_MENU_KEYBOARD, COUNTRY_KEYBOARD
 from utils.panel_builder import build_country_panel, build_end_day_report
 
@@ -97,7 +98,7 @@ async def menu_callback_handler(
     elif data == "menu_diplomacy":
         await query.message.reply_text(f"🤝 دیپلماسی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
     elif data == "menu_technology":
-        await query.message.reply_text(f"🔬 فناوری\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
+        await show_technology_menu(query, country_id)
     elif data == "menu_news":
         await query.message.reply_text(f"📰 اخبار جهان\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
     elif data == "menu_leaderboard":
