@@ -10,6 +10,7 @@ from models.player import Player
 from models.country import Country
 from services.economy_service import next_day
 from handlers.buildings import show_building_list, show_queue
+from handlers.market import show_market
 from utils.keyboards import MAIN_MENU_KEYBOARD, COUNTRY_KEYBOARD
 from utils.panel_builder import build_country_panel, build_end_day_report
 
@@ -80,12 +81,13 @@ async def menu_callback_handler(
     elif data == "menu_queue":
         await show_queue(query, country_id)
 
+    elif data == "menu_market":
+        await show_market(query, country_id)
+
     elif data == "menu_economy":
         await query.message.reply_text(f"💰 اقتصاد\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
     elif data == "menu_industry":
         await query.message.reply_text(f"🏭 صنعت\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
-    elif data == "menu_market":
-        await query.message.reply_text(f"🛒 فروشگاه جهانی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
     elif data == "menu_military":
         await query.message.reply_text(f"🪖 ارتش\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
     elif data == "menu_operations":
