@@ -13,7 +13,6 @@ SEP = "━━━━━━━━━━━━━━━━━━━━━━"
 
 
 def _n(value) -> str:
-    """Format a numeric value with comma separators."""
     try:
         return f"{int(value):,}"
     except (TypeError, ValueError):
@@ -21,11 +20,18 @@ def _n(value) -> str:
 
 
 def _f(value) -> str:
-    """Format a float/large currency value with comma separators."""
     try:
         return f"{float(value):,.0f}"
     except (TypeError, ValueError):
         return str(value) if value is not None else "۰"
+
+
+def _col(row, key: str, default=0):
+    """Safe column access — returns default if column doesn't exist yet."""
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return default
 
 
 def _tech_flag(value: int) -> str:
@@ -39,7 +45,6 @@ def _alliance_block(alliances: list[str]) -> str:
 
 
 def _split_messages(sections: list[str]) -> list[str]:
-    """Pack sections into messages, each ≤ 4096 chars."""
     messages: list[str] = []
     current = ""
     for section in sections:
@@ -56,7 +61,7 @@ def _split_messages(sections: list[str]) -> list[str]:
 
 
 # ═══════════════════════════════════════════════════════════════
-# COUNTRY PANEL
+# COUNTRY PANEL SECTIONS
 # ═══════════════════════════════════════════════════════════════
 
 def _section_header(country) -> str:
@@ -104,19 +109,26 @@ def _section_buildings(b: sqlite3.Row) -> str:
     return (
         f"{SEP}\n\n"
         f"🏭 ساختمان‌ها\n\n"
-        f"🏭 کارخانه غیرنظامی:\n{_n(b['civil_factory'])}\n\n"
-        f"🏭 کارخانه نظامی:\n{_n(b['military_factory'])}\n\n"
-        f"✈ کارخانه هواپیماسازی:\n{_n(b['aircraft_factory'])}\n\n"
-        f"🚢 کارخانه کشتی‌سازی:\n{_n(b['shipyard'])}\n\n"
-        f"🚀 کارخانه موشک‌سازی:\n{_n(b['missile_factory'])}\n\n"
-        f"🛡 کارخانه زرهی:\n{_n(b['armor_factory'])}\n\n"
-        f"🛰 کارخانه الکترونیک:\n{_n(b['electronics_factory'])}\n\n"
-        f"⚡ نیروگاه:\n{_n(b['power_plant'])}\n\n"
-        f"🛢 پالایشگاه:\n{_n(b['refinery'])}\n\n"
-        f"🔬 مرکز تحقیق:\n{_n(b['research_center'])}\n\n"
-        f"🛰 مرکز کنترل ماهواره:\n{_n(b['satellite_center'])}\n\n"
-        f"📦 انبار:\n{_n(b['warehouse'])}\n\n"
-        f"🚛 مرکز لجستیک:\n{_n(b['logistics_center'])}"
+        f"🏭 کارخانه غیرنظامی:\n{_n(_col(b,'civil_factory'))}\n\n"
+        f"🏭 کارخانه نظامی:\n{_n(_col(b,'military_factory'))}\n\n"
+        f"✈ کارخانه هواپیماسازی:\n{_n(_col(b,'aircraft_factory'))}\n\n"
+        f"🚢 کارخانه کشتی‌سازی:\n{_n(_col(b,'shipyard'))}\n\n"
+        f"🚀 کارخانه موشک‌سازی:\n{_n(_col(b,'missile_factory'))}\n\n"
+        f"🛡 کارخانه زرهی:\n{_n(_col(b,'armor_factory'))}\n\n"
+        f"🛰 کارخانه الکترونیک:\n{_n(_col(b,'electronics_factory'))}\n\n"
+        f"⚡ نیروگاه:\n{_n(_col(b,'power_plant'))}\n\n"
+        f"🛢 پالایشگاه:\n{_n(_col(b,'refinery'))}\n\n"
+        f"🔬 مرکز تحقیق:\n{_n(_col(b,'research_center'))}\n\n"
+        f"📡 مرکز کنترل ماهواره:\n{_n(_col(b,'satellite_center'))}\n\n"
+        f"📦 انبار:\n{_n(_col(b,'warehouse'))}\n\n"
+        f"🚛 مرکز لجستیک:\n{_n(_col(b,'logistics_center'))}\n\n"
+        f"🏥 بیمارستان:\n{_n(_col(b,'hospital'))}\n\n"
+        f"🎓 دانشگاه:\n{_n(_col(b,'university'))}\n\n"
+        f"🏙 برج اقتصادی:\n{_n(_col(b,'economic_tower'))}\n\n"
+        f"🛣 بزرگراه:\n{_n(_col(b,'highway'))}\n\n"
+        f"🚆 راه‌آهن:\n{_n(_col(b,'railway'))}\n\n"
+        f"🌆 شهر هوشمند:\n{_n(_col(b,'smart_city'))}\n\n"
+        f"🌿 پارک ملی:\n{_n(_col(b,'national_park'))}"
     )
 
 
@@ -190,13 +202,6 @@ def build_country_panel(
     military: Optional[sqlite3.Row],
     alliances: list[str],
 ) -> list[str]:
-    """Full country panel split into ≤4096-char messages."""
-    _eco       = eco       or {}
-    _buildings = buildings or {}
-    _resources = resources or {}
-    _tech      = technology or {}
-    _mil       = military  or {}
-
     sections = [
         _section_header(country),
         _section_finance(country, eco) if eco else f"{SEP}\n\n💵 وضعیت مالی\n\nاطلاعات موجود نیست",
@@ -215,17 +220,12 @@ def build_country_panel(
 # ═══════════════════════════════════════════════════════════════
 
 def build_end_day_report(report: dict) -> str:
-    """
-    Build the end-of-day report message from the dict returned by
-    EconomyService.next_day().
-    """
     income      = report["income"]
     maintenance = report["maintenance"]
     day         = report["day"]
     b_before    = report["budget_before"]
     b_after     = report["budget_after"]
     net         = income["total"] - maintenance
-
     surplus_emoji = "📈" if net >= 0 else "📉"
     net_label     = "مازاد روزانه" if net >= 0 else "کسری روزانه"
 

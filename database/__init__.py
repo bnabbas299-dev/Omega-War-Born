@@ -16,12 +16,6 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "game.db")
 # ── Connection ───────────────────────────────────────────────────────────────
 
 def get_connection() -> sqlite3.Connection:
-    """
-    Open and return a new SQLite connection.
-    - row_factory = sqlite3.Row  (column-name access)
-    - foreign_keys enforced
-    - WAL journal for concurrent read safety
-    """
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -33,11 +27,6 @@ def get_connection() -> sqlite3.Connection:
 # ── Schema ───────────────────────────────────────────────────────────────────
 
 _SCHEMA = """
--- ============================================================
--- 1. COUNTRIES
---    leader_id is nullable (set after first player registers).
---    Circular ref (countries ↔ players) handled at app level.
--- ============================================================
 CREATE TABLE IF NOT EXISTS countries (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT,
     country_name          TEXT    NOT NULL UNIQUE,
@@ -59,12 +48,8 @@ CREATE TABLE IF NOT EXISTS countries (
     created_at            TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
     updated_at            TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_countries_leader ON countries(leader_id);
 
--- ============================================================
--- 2. PLAYERS
--- ============================================================
 CREATE TABLE IF NOT EXISTS players (
     telegram_id  INTEGER PRIMARY KEY,
     username     TEXT,
@@ -75,13 +60,9 @@ CREATE TABLE IF NOT EXISTS players (
     is_admin     INTEGER NOT NULL DEFAULT 0,
     is_banned    INTEGER NOT NULL DEFAULT 0
 );
-
-CREATE INDEX IF NOT EXISTS idx_players_country    ON players(country_id);
+CREATE INDEX IF NOT EXISTS idx_players_country     ON players(country_id);
 CREATE INDEX IF NOT EXISTS idx_players_last_online ON players(last_online);
 
--- ============================================================
--- 3. RESOURCES  (one row per country)
--- ============================================================
 CREATE TABLE IF NOT EXISTS resources (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id  INTEGER NOT NULL UNIQUE REFERENCES countries(id) ON DELETE CASCADE,
@@ -96,9 +77,6 @@ CREATE TABLE IF NOT EXISTS resources (
     updated_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
--- ============================================================
--- 4. BUILDINGS  (one row per country)
--- ============================================================
 CREATE TABLE IF NOT EXISTS buildings (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id           INTEGER NOT NULL UNIQUE REFERENCES countries(id) ON DELETE CASCADE,
@@ -115,12 +93,16 @@ CREATE TABLE IF NOT EXISTS buildings (
     satellite_center     INTEGER NOT NULL DEFAULT 0,
     warehouse            INTEGER NOT NULL DEFAULT 0,
     logistics_center     INTEGER NOT NULL DEFAULT 0,
+    hospital             INTEGER NOT NULL DEFAULT 0,
+    university           INTEGER NOT NULL DEFAULT 0,
+    economic_tower       INTEGER NOT NULL DEFAULT 0,
+    highway              INTEGER NOT NULL DEFAULT 0,
+    railway              INTEGER NOT NULL DEFAULT 0,
+    smart_city           INTEGER NOT NULL DEFAULT 0,
+    national_park        INTEGER NOT NULL DEFAULT 0,
     updated_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
--- ============================================================
--- 5. MILITARY  (one row per country)
--- ============================================================
 CREATE TABLE IF NOT EXISTS military (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id          INTEGER NOT NULL UNIQUE REFERENCES countries(id) ON DELETE CASCADE,
@@ -143,9 +125,6 @@ CREATE TABLE IF NOT EXISTS military (
     updated_at          TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
--- ============================================================
--- 6. TECHNOLOGY  (one row per country)
--- ============================================================
 CREATE TABLE IF NOT EXISTS technology (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id        INTEGER NOT NULL UNIQUE REFERENCES countries(id) ON DELETE CASCADE,
@@ -157,9 +136,6 @@ CREATE TABLE IF NOT EXISTS technology (
     updated_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
--- ============================================================
--- 7. ECONOMY  (one row per country)
--- ============================================================
 CREATE TABLE IF NOT EXISTS economy (
     id                     INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id             INTEGER NOT NULL UNIQUE REFERENCES countries(id) ON DELETE CASCADE,
@@ -171,9 +147,6 @@ CREATE TABLE IF NOT EXISTS economy (
     updated_at             TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
 
--- ============================================================
--- 8. ALLIANCES
--- ============================================================
 CREATE TABLE IF NOT EXISTS alliances (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     alliance_name  TEXT    NOT NULL UNIQUE,
@@ -182,12 +155,8 @@ CREATE TABLE IF NOT EXISTS alliances (
     created_at     TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
     updated_at     TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_alliances_leader ON alliances(leader_country);
 
--- ============================================================
--- 9. ALLIANCE MEMBERS
--- ============================================================
 CREATE TABLE IF NOT EXISTS alliance_members (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     alliance_id INTEGER NOT NULL REFERENCES alliances(id)  ON DELETE CASCADE,
@@ -195,13 +164,9 @@ CREATE TABLE IF NOT EXISTS alliance_members (
     joined_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
     UNIQUE (alliance_id, country_id)
 );
-
 CREATE INDEX IF NOT EXISTS idx_alliance_members_country  ON alliance_members(country_id);
 CREATE INDEX IF NOT EXISTS idx_alliance_members_alliance ON alliance_members(alliance_id);
 
--- ============================================================
--- 10. WARS
--- ============================================================
 CREATE TABLE IF NOT EXISTS wars (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker   INTEGER NOT NULL REFERENCES countries(id) ON DELETE RESTRICT,
@@ -212,31 +177,23 @@ CREATE TABLE IF NOT EXISTS wars (
     end_date   TEXT,
     UNIQUE (attacker, defender, start_date)
 );
-
 CREATE INDEX IF NOT EXISTS idx_wars_attacker ON wars(attacker);
 CREATE INDEX IF NOT EXISTS idx_wars_defender ON wars(defender);
 CREATE INDEX IF NOT EXISTS idx_wars_status   ON wars(status);
 
--- ============================================================
--- 11. CONSTRUCTION QUEUE
--- ============================================================
 CREATE TABLE IF NOT EXISTS construction_queue (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id    INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
     building_name TEXT    NOT NULL,
     start_time    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
     finish_time   TEXT    NOT NULL,
-    status        TEXT    NOT NULL DEFAULT 'pending'
+    status        TEXT    NOT NULL DEFAULT 'in_progress'
                           CHECK(status IN ('pending','in_progress','completed','cancelled'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_construction_country ON construction_queue(country_id);
 CREATE INDEX IF NOT EXISTS idx_construction_status  ON construction_queue(status);
 CREATE INDEX IF NOT EXISTS idx_construction_finish  ON construction_queue(finish_time);
 
--- ============================================================
--- 12. PURCHASE HISTORY
--- ============================================================
 CREATE TABLE IF NOT EXISTS purchase_history (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     country_id    INTEGER NOT NULL REFERENCES countries(id) ON DELETE CASCADE,
@@ -245,13 +202,9 @@ CREATE TABLE IF NOT EXISTS purchase_history (
     price         REAL    NOT NULL DEFAULT 0,
     purchase_time TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_purchase_country ON purchase_history(country_id);
 CREATE INDEX IF NOT EXISTS idx_purchase_time    ON purchase_history(purchase_time);
 
--- ============================================================
--- 13. BATTLE HISTORY
--- ============================================================
 CREATE TABLE IF NOT EXISTS battle_history (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     war_id           INTEGER NOT NULL REFERENCES wars(id) ON DELETE CASCADE,
@@ -260,13 +213,9 @@ CREATE TABLE IF NOT EXISTS battle_history (
     equipment_losses TEXT,
     battle_date      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_battle_history_war  ON battle_history(war_id);
 CREATE INDEX IF NOT EXISTS idx_battle_history_date ON battle_history(battle_date);
 
--- ============================================================
--- 14. WORLD EVENTS
--- ============================================================
 CREATE TABLE IF NOT EXISTS world_events (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     title       TEXT NOT NULL,
@@ -274,33 +223,48 @@ CREATE TABLE IF NOT EXISTS world_events (
     effect      TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_world_events_date ON world_events(created_at);
 
--- ============================================================
--- 15. WORLD NEWS
--- ============================================================
 CREATE TABLE IF NOT EXISTS world_news (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     title      TEXT NOT NULL,
     content    TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_world_news_date ON world_news(created_at);
 """
+
+# ── Migrations ────────────────────────────────────────────────────────────────
+# New columns added to existing tables after initial release.
+# Safe to re-run on every startup.
+
+_BUILDING_MIGRATIONS = {
+    "hospital":       "INTEGER NOT NULL DEFAULT 0",
+    "university":     "INTEGER NOT NULL DEFAULT 0",
+    "economic_tower": "INTEGER NOT NULL DEFAULT 0",
+    "highway":        "INTEGER NOT NULL DEFAULT 0",
+    "railway":        "INTEGER NOT NULL DEFAULT 0",
+    "smart_city":     "INTEGER NOT NULL DEFAULT 0",
+    "national_park":  "INTEGER NOT NULL DEFAULT 0",
+}
+
+
+def _run_migrations(conn: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(buildings)")}
+    for col, defn in _BUILDING_MIGRATIONS.items():
+        if col not in existing:
+            conn.execute(f"ALTER TABLE buildings ADD COLUMN {col} {defn}")
+            print(f"[DB] Migration: added buildings.{col}")
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def initialize_database() -> None:
-    """
-    Create all tables and indexes if they do not already exist.
-    Safe to call on every startup — uses CREATE IF NOT EXISTS throughout.
-    """
     conn = get_connection()
     try:
         conn.executescript(_SCHEMA)
+        conn.commit()
+        _run_migrations(conn)
         conn.commit()
         print("[DB] Database initialised successfully.")
     except sqlite3.Error as exc:
@@ -310,5 +274,4 @@ def initialize_database() -> None:
         conn.close()
 
 
-# Backwards-compatible alias
 init_db = initialize_database

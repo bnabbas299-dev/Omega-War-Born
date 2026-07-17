@@ -9,6 +9,7 @@ from telegram.ext import ContextTypes
 from models.player import Player
 from models.country import Country
 from services.economy_service import next_day
+from handlers.buildings import show_building_list, show_queue
 from utils.keyboards import MAIN_MENU_KEYBOARD, COUNTRY_KEYBOARD
 from utils.panel_builder import build_country_panel, build_end_day_report
 
@@ -59,7 +60,6 @@ async def menu_callback_handler(
     player.touch()
     country_id: int = player.country_id  # type: ignore[assignment]
 
-    # ── Enter game ───────────────────────────────────────────────────────────
     if data == "menu_enter":
         country = Country.get_by_id(country_id)
         name = country.country_name if country else "—"
@@ -68,15 +68,18 @@ async def menu_callback_handler(
             reply_markup=MAIN_MENU_KEYBOARD,
         )
 
-    # ── End of day ───────────────────────────────────────────────────────────
     elif data == "menu_end_day":
         await _handle_end_day(query, country_id)
 
-    # ── Country panel ────────────────────────────────────────────────────────
     elif data == "menu_country_panel":
         await _send_country_panel(query, country_id)
 
-    # ── Placeholder sections ──────────────────────────────────────────────────
+    elif data == "menu_construction":
+        await show_building_list(query, country_id)
+
+    elif data == "menu_queue":
+        await show_queue(query, country_id)
+
     elif data == "menu_economy":
         await query.message.reply_text(f"💰 اقتصاد\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
     elif data == "menu_industry":
@@ -97,7 +100,7 @@ async def menu_callback_handler(
         await query.message.reply_text(f"🏆 رتبه‌بندی\n\n{_COMING_SOON}", reply_markup=MAIN_MENU_KEYBOARD)
 
 
-# ── End-of-day handler ────────────────────────────────────────────────────────
+# ── End-of-day helper ─────────────────────────────────────────────────────────
 
 async def _handle_end_day(query, country_id: int) -> None:
     try:
@@ -107,7 +110,6 @@ async def _handle_end_day(query, country_id: int) -> None:
             f"❌ خطا در پردازش پایان روز:\n{exc}", reply_markup=MAIN_MENU_KEYBOARD
         )
         return
-
     text = build_end_day_report(report)
     await query.message.reply_text(text, reply_markup=MAIN_MENU_KEYBOARD)
 
