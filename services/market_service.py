@@ -1,6 +1,6 @@
 """
-Market Service — Phase 7
-MBN Global Market: catalog, validation, purchase execution, and inventory update.
+Market Service — Phase 7 (Persian Edition)
+MBN Global Market: 75 items across 7 categories.
 """
 
 from __future__ import annotations
@@ -8,436 +8,588 @@ from __future__ import annotations
 from database import get_connection
 
 # ── Market catalog ────────────────────────────────────────────────────────────
-# price: absolute value in dollars
-# tech_req: minimum technology_level
+# price:        absolute USD value
+# tech_req:     minimum technology_level (0 = no requirement)
+# category:     used to group items in the menu
 # military_col: column in the military table that receives quantity
 
 MARKET_CATALOG: dict[str, dict] = {
 
-    # ── Ground Forces — Vehicles ──────────────────────────────────────────
+    # ════════════════════════════════════════════════════════════════════════
+    # 🪖  تجهیزات زمینی
+    # ════════════════════════════════════════════════════════════════════════
+
     "tactical_vehicle": {
-        "name_fa":     "خودرو تاکتیکی",
-        "name_en":     "Tactical Vehicle",
-        "emoji":       "🚙",
+        "name":        "🚙 خودروی تاکتیکی",
         "price":       20_000_000,
         "tech_req":    1,
         "category":    "ground",
         "military_col": "armored_vehicles",
     },
     "recon_vehicle": {
-        "name_fa":     "خودرو شناسایی",
-        "name_en":     "Recon Vehicle",
-        "emoji":       "🚗",
+        "name":        "🚙 خودروی شناسایی",
         "price":       40_000_000,
         "tech_req":    2,
         "category":    "ground",
         "military_col": "armored_vehicles",
     },
     "military_truck": {
-        "name_fa":     "کامیون نظامی",
-        "name_en":     "Military Truck",
-        "emoji":       "🚛",
+        "name":        "🚛 کامیون نظامی",
         "price":       30_000_000,
         "tech_req":    1,
         "category":    "ground",
         "military_col": "armored_vehicles",
     },
     "armored_ambulance": {
-        "name_fa":     "آمبولانس زرهی",
-        "name_en":     "Armored Ambulance",
-        "emoji":       "🚑",
+        "name":        "🚑 آمبولانس زرهی",
         "price":       60_000_000,
         "tech_req":    2,
         "category":    "ground",
         "military_col": "armored_vehicles",
     },
     "apc": {
-        "name_fa":     "نفربر زرهی (APC)",
-        "name_en":     "APC",
-        "emoji":       "🛡",
+        "name":        "🛡 نفربر APC",
         "price":       90_000_000,
         "tech_req":    2,
         "category":    "ground",
         "military_col": "armored_vehicles",
     },
     "ifv": {
-        "name_fa":     "خودرو رزمی پیاده (IFV)",
-        "name_en":     "IFV",
-        "emoji":       "🪖",
+        "name":        "🛡 IFV",
         "price":       140_000_000,
         "tech_req":    3,
         "category":    "ground",
         "military_col": "armored_vehicles",
     },
     "mrap": {
-        "name_fa":     "خودرو مقاوم در برابر مین (MRAP)",
-        "name_en":     "MRAP",
-        "emoji":       "🛻",
+        "name":        "🛡 MRAP",
         "price":       120_000_000,
         "tech_req":    3,
         "category":    "ground",
         "military_col": "armored_vehicles",
     },
-
-    # ── Ground Forces — Tanks ─────────────────────────────────────────────
+    "t72": {
+        "name":        "🪖 تانک T-72",
+        "price":       80_000_000,
+        "tech_req":    2,
+        "category":    "ground",
+        "military_col": "tanks",
+    },
     "t90m": {
-        "name_fa":     "تانک T-90M",
-        "name_en":     "T-90M",
-        "emoji":       "🪖",
+        "name":        "🪖 تانک T-90M",
         "price":       160_000_000,
         "tech_req":    4,
         "category":    "ground",
         "military_col": "tanks",
     },
-    "leopard_2a7": {
-        "name_fa":     "تانک Leopard 2A7",
-        "name_en":     "Leopard 2A7",
-        "emoji":       "🪖",
+    "leopard2a7": {
+        "name":        "🪖 Leopard 2A7",
         "price":       180_000_000,
         "tech_req":    4,
         "category":    "ground",
         "military_col": "tanks",
     },
-    "m1a2_abrams": {
-        "name_fa":     "تانک M1A2 Abrams",
-        "name_en":     "M1A2 Abrams",
-        "emoji":       "🪖",
+    "m1a2": {
+        "name":        "🪖 M1A2 Abrams",
         "price":       190_000_000,
         "tech_req":    4,
         "category":    "ground",
         "military_col": "tanks",
     },
-    "k2_black_panther": {
-        "name_fa":     "تانک K2 Black Panther",
-        "name_en":     "K2 Black Panther",
-        "emoji":       "🪖",
+    "k2": {
+        "name":        "🪖 K2 Black Panther",
         "price":       220_000_000,
         "tech_req":    5,
         "category":    "ground",
         "military_col": "tanks",
     },
-    "merkava_mk4": {
-        "name_fa":     "تانک Merkava Mk4",
-        "name_en":     "Merkava Mk4",
-        "emoji":       "🪖",
+    "merkava4": {
+        "name":        "🪖 Merkava Mk.4",
         "price":       250_000_000,
         "tech_req":    6,
         "category":    "ground",
         "military_col": "tanks",
     },
-    "t14_armata": {
-        "name_fa":     "تانک T-14 Armata",
-        "name_en":     "T-14 Armata",
-        "emoji":       "🪖",
+    "challenger3": {
+        "name":        "🪖 Challenger 3",
+        "price":       240_000_000,
+        "tech_req":    6,
+        "category":    "ground",
+        "military_col": "tanks",
+    },
+    "leclerc": {
+        "name":        "🪖 Leclerc XLR",
+        "price":       230_000_000,
+        "tech_req":    5,
+        "category":    "ground",
+        "military_col": "tanks",
+    },
+    "t14": {
+        "name":        "🪖 T-14 Armata",
         "price":       300_000_000,
         "tech_req":    7,
         "category":    "ground",
         "military_col": "tanks",
     },
-    "kf51_panther": {
-        "name_fa":     "تانک KF51 Panther",
-        "name_en":     "KF51 Panther",
-        "emoji":       "🪖",
+    "kf51": {
+        "name":        "🪖 KF51 Panther",
         "price":       400_000_000,
         "tech_req":    8,
         "category":    "ground",
         "military_col": "tanks",
     },
 
-    # ── Air Force — Drones ────────────────────────────────────────────────
-    "recon_drone": {
-        "name_fa":     "پهپاد شناسایی",
-        "name_en":     "Recon Drone",
-        "emoji":       "🛩",
-        "price":       30_000_000,
-        "tech_req":    2,
-        "category":    "air",
-        "military_col": "drones",
-    },
-    "combat_drone": {
-        "name_fa":     "پهپاد رزمی",
-        "name_en":     "Combat Drone",
-        "emoji":       "🛩",
-        "price":       80_000_000,
-        "tech_req":    3,
-        "category":    "air",
-        "military_col": "drones",
-    },
-    "heavy_drone": {
-        "name_fa":     "پهپاد سنگین",
-        "name_en":     "Heavy Drone",
-        "emoji":       "🛩",
-        "price":       250_000_000,
-        "tech_req":    5,
-        "category":    "air",
-        "military_col": "drones",
-    },
+    # ════════════════════════════════════════════════════════════════════════
+    # ✈  جنگنده‌ها
+    # ════════════════════════════════════════════════════════════════════════
 
-    # ── Air Force — Helicopters ───────────────────────────────────────────
-    "transport_helicopter": {
-        "name_fa":     "بالگرد ترابری",
-        "name_en":     "Transport Helicopter",
-        "emoji":       "🚁",
-        "price":       150_000_000,
-        "tech_req":    3,
-        "category":    "air",
-        "military_col": "helicopters",
-    },
-    "attack_helicopter": {
-        "name_fa":     "بالگرد تهاجمی",
-        "name_en":     "Attack Helicopter",
-        "emoji":       "🚁",
-        "price":       400_000_000,
-        "tech_req":    5,
-        "category":    "air",
-        "military_col": "helicopters",
-    },
-    "heavy_helicopter": {
-        "name_fa":     "بالگرد سنگین",
-        "name_en":     "Heavy Helicopter",
-        "emoji":       "🚁",
-        "price":       600_000_000,
-        "tech_req":    6,
-        "category":    "air",
-        "military_col": "helicopters",
-    },
-
-    # ── Air Force — Fighters ──────────────────────────────────────────────
     "f16": {
-        "name_fa":     "جنگنده F-16",
-        "name_en":     "F-16",
-        "emoji":       "✈",
+        "name":        "✈ F-16",
         "price":       900_000_000,
         "tech_req":    5,
-        "category":    "air",
+        "category":    "fighters",
         "military_col": "fighters",
     },
     "gripen": {
-        "name_fa":     "جنگنده Gripen",
-        "name_en":     "Gripen",
-        "emoji":       "✈",
+        "name":        "✈ Gripen",
         "price":       950_000_000,
         "tech_req":    5,
-        "category":    "air",
+        "category":    "fighters",
         "military_col": "fighters",
     },
     "rafale": {
-        "name_fa":     "جنگنده Rafale",
-        "name_en":     "Rafale",
-        "emoji":       "✈",
+        "name":        "✈ Rafale",
         "price":       1_200_000_000,
         "tech_req":    6,
-        "category":    "air",
+        "category":    "fighters",
         "military_col": "fighters",
     },
     "eurofighter": {
-        "name_fa":     "جنگنده Eurofighter",
-        "name_en":     "Eurofighter",
-        "emoji":       "✈",
+        "name":        "✈ Eurofighter Typhoon",
         "price":       1_300_000_000,
         "tech_req":    6,
-        "category":    "air",
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "f15ex": {
+        "name":        "✈ F-15EX",
+        "price":       1_100_000_000,
+        "tech_req":    6,
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "mig35": {
+        "name":        "✈ MiG-35",
+        "price":       700_000_000,
+        "tech_req":    5,
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "su30": {
+        "name":        "✈ Su-30",
+        "price":       600_000_000,
+        "tech_req":    4,
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "su35": {
+        "name":        "✈ Su-35",
+        "price":       850_000_000,
+        "tech_req":    5,
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "su57": {
+        "name":        "✈ Su-57",
+        "price":       1_500_000_000,
+        "tech_req":    7,
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "j10c": {
+        "name":        "✈ J-10C",
+        "price":       600_000_000,
+        "tech_req":    5,
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "j20": {
+        "name":        "✈ J-20",
+        "price":       1_400_000_000,
+        "tech_req":    7,
+        "category":    "fighters",
         "military_col": "fighters",
     },
     "f35": {
-        "name_fa":     "جنگنده F-35",
-        "name_en":     "F-35",
-        "emoji":       "✈",
+        "name":        "✈ F-35",
         "price":       1_500_000_000,
         "tech_req":    7,
-        "category":    "air",
+        "category":    "fighters",
         "military_col": "fighters",
     },
     "f22": {
-        "name_fa":     "جنگنده F-22",
-        "name_en":     "F-22",
-        "emoji":       "✈",
+        "name":        "✈ F-22",
         "price":       2_000_000_000,
         "tech_req":    8,
-        "category":    "air",
+        "category":    "fighters",
+        "military_col": "fighters",
+    },
+    "kaan": {
+        "name":        "✈ KAAN",
+        "price":       1_200_000_000,
+        "tech_req":    6,
+        "category":    "fighters",
         "military_col": "fighters",
     },
 
-    # ── Navy ──────────────────────────────────────────────────────────────
+    # ════════════════════════════════════════════════════════════════════════
+    # 🚁  بالگردها
+    # ════════════════════════════════════════════════════════════════════════
+
+    "uh60": {
+        "name":        "🚁 UH-60 Black Hawk",
+        "price":       100_000_000,
+        "tech_req":    3,
+        "category":    "helicopters",
+        "military_col": "helicopters",
+    },
+    "ah64": {
+        "name":        "🚁 AH-64 Apache",
+        "price":       400_000_000,
+        "tech_req":    5,
+        "category":    "helicopters",
+        "military_col": "helicopters",
+    },
+    "mi17": {
+        "name":        "🚁 Mi-17",
+        "price":       80_000_000,
+        "tech_req":    2,
+        "category":    "helicopters",
+        "military_col": "helicopters",
+    },
+    "mi28": {
+        "name":        "🚁 Mi-28",
+        "price":       350_000_000,
+        "tech_req":    5,
+        "category":    "helicopters",
+        "military_col": "helicopters",
+    },
+    "ka52": {
+        "name":        "🚁 Ka-52",
+        "price":       450_000_000,
+        "tech_req":    5,
+        "category":    "helicopters",
+        "military_col": "helicopters",
+    },
+    "ch47": {
+        "name":        "🚁 CH-47 Chinook",
+        "price":       150_000_000,
+        "tech_req":    3,
+        "category":    "helicopters",
+        "military_col": "helicopters",
+    },
+
+    # ════════════════════════════════════════════════════════════════════════
+    # 🤖  پهپادها
+    # ════════════════════════════════════════════════════════════════════════
+
+    "shahed136": {
+        "name":        "🛩 شاهد ۱۳۶",
+        "price":       20_000_000,
+        "tech_req":    2,
+        "category":    "drones",
+        "military_col": "drones",
+    },
+    "shahed149": {
+        "name":        "🛩 شاهد ۱۴۹ غزه",
+        "price":       50_000_000,
+        "tech_req":    3,
+        "category":    "drones",
+        "military_col": "drones",
+    },
+    "mq9": {
+        "name":        "🛩 MQ-9 Reaper",
+        "price":       200_000_000,
+        "tech_req":    5,
+        "category":    "drones",
+        "military_col": "drones",
+    },
+    "tb2": {
+        "name":        "🛩 Bayraktar TB2",
+        "price":       80_000_000,
+        "tech_req":    3,
+        "category":    "drones",
+        "military_col": "drones",
+    },
+    "akinci": {
+        "name":        "🛩 Akıncı",
+        "price":       150_000_000,
+        "tech_req":    4,
+        "category":    "drones",
+        "military_col": "drones",
+    },
+    "wing_loong": {
+        "name":        "🛩 Wing Loong II",
+        "price":       100_000_000,
+        "tech_req":    4,
+        "category":    "drones",
+        "military_col": "drones",
+    },
+    "ch5": {
+        "name":        "🛩 CH-5",
+        "price":       120_000_000,
+        "tech_req":    4,
+        "category":    "drones",
+        "military_col": "drones",
+    },
+
+    # ════════════════════════════════════════════════════════════════════════
+    # 🚢  نیروی دریایی
+    # ════════════════════════════════════════════════════════════════════════
+
     "patrol_boat": {
-        "name_fa":     "قایق گشت‌زنی",
-        "name_en":     "Patrol Boat",
-        "emoji":       "🚤",
+        "name":        "🚤 قایق گشتی",
         "price":       50_000_000,
         "tech_req":    2,
         "category":    "navy",
         "military_col": "patrol_boats",
     },
-    "fast_combat_boat": {
-        "name_fa":     "قایق رزمی سریع",
-        "name_en":     "Fast Combat Boat",
-        "emoji":       "🚤",
+    "fast_boat": {
+        "name":        "🚤 قایق رزمی سریع",
         "price":       120_000_000,
         "tech_req":    3,
         "category":    "navy",
         "military_col": "patrol_boats",
     },
     "support_ship": {
-        "name_fa":     "کشتی پشتیبانی",
-        "name_en":     "Support Ship",
-        "emoji":       "🚢",
+        "name":        "🚢 کشتی پشتیبانی",
         "price":       500_000_000,
         "tech_req":    4,
         "category":    "navy",
         "military_col": "warships",
     },
-    "frigate": {
-        "name_fa":     "فریگات",
-        "name_en":     "Frigate",
-        "emoji":       "🚢",
-        "price":       1_000_000_000,
+    "corvette": {
+        "name":        "⚓ ناوچه",
+        "price":       800_000_000,
         "tech_req":    5,
         "category":    "navy",
         "military_col": "warships",
     },
     "destroyer": {
-        "name_fa":     "ناوشکن",
-        "name_en":     "Destroyer",
-        "emoji":       "🚢",
+        "name":        "⚓ ناوشکن",
         "price":       3_000_000_000,
         "tech_req":    6,
         "category":    "navy",
         "military_col": "warships",
     },
     "cruiser": {
-        "name_fa":     "ناو رزمی",
-        "name_en":     "Cruiser",
-        "emoji":       "🚢",
+        "name":        "⚓ رزم‌ناو",
         "price":       5_000_000_000,
         "tech_req":    7,
         "category":    "navy",
         "military_col": "warships",
     },
-    "diesel_submarine": {
-        "name_fa":     "زیردریایی دیزلی",
-        "name_en":     "Diesel Submarine",
-        "emoji":       "🌊",
+    "diesel_sub": {
+        "name":        "🌊 زیردریایی دیزل",
         "price":       2_000_000_000,
         "tech_req":    5,
         "category":    "navy",
         "military_col": "submarines",
     },
-    "advanced_submarine": {
-        "name_fa":     "زیردریایی پیشرفته",
-        "name_en":     "Advanced Submarine",
-        "emoji":       "🌊",
+    "adv_sub": {
+        "name":        "🌊 زیردریایی پیشرفته",
         "price":       6_000_000_000,
         "tech_req":    7,
         "category":    "navy",
         "military_col": "submarines",
     },
-    "aircraft_carrier": {
-        "name_fa":     "ناو هواپیمابر",
-        "name_en":     "Aircraft Carrier",
-        "emoji":       "🚢",
+    "nuclear_sub": {
+        "name":        "⚛ زیردریایی هسته‌ای",
+        "price":       15_000_000_000,
+        "tech_req":    9,
+        "category":    "navy",
+        "military_col": "submarines",
+    },
+    "light_carrier": {
+        "name":        "🛳 ناو هواپیمابر سبک",
+        "price":       20_000_000_000,
+        "tech_req":    8,
+        "category":    "navy",
+        "military_col": "warships",
+    },
+    "carrier": {
+        "name":        "🛳 ناو هواپیمابر",
         "price":       50_000_000_000,
         "tech_req":    9,
         "category":    "navy",
         "military_col": "warships",
     },
 
-    # ── Missiles ──────────────────────────────────────────────────────────
+    # ════════════════════════════════════════════════════════════════════════
+    # 🚀  موشک‌ها
+    # ════════════════════════════════════════════════════════════════════════
+
     "tactical_missile": {
-        "name_fa":     "موشک تاکتیکی",
-        "name_en":     "Tactical Missile",
-        "emoji":       "🚀",
+        "name":        "🚀 موشک تاکتیکی",
         "price":       100_000_000,
         "tech_req":    3,
         "category":    "missiles",
         "military_col": "missiles",
     },
     "cruise_missile": {
-        "name_fa":     "موشک کروز",
-        "name_en":     "Cruise Missile",
-        "emoji":       "🚀",
+        "name":        "🚀 موشک کروز",
         "price":       500_000_000,
         "tech_req":    5,
         "category":    "missiles",
         "military_col": "missiles",
     },
     "tomahawk": {
-        "name_fa":     "موشک Tomahawk",
-        "name_en":     "Tomahawk",
-        "emoji":       "🚀",
+        "name":        "🚀 Tomahawk",
         "price":       700_000_000,
         "tech_req":    6,
         "category":    "missiles",
         "military_col": "missiles",
     },
     "atacms": {
-        "name_fa":     "موشک ATACMS",
-        "name_en":     "ATACMS",
-        "emoji":       "🚀",
+        "name":        "🚀 ATACMS",
         "price":       900_000_000,
         "tech_req":    6,
         "category":    "missiles",
         "military_col": "missiles",
     },
-    "ballistic_missile": {
-        "name_fa":     "موشک بالستیک",
-        "name_en":     "Ballistic Missile",
-        "emoji":       "🚀",
-        "price":       1_500_000_000,
+    "storm_shadow": {
+        "name":        "🚀 Storm Shadow",
+        "price":       800_000_000,
+        "tech_req":    6,
+        "category":    "missiles",
+        "military_col": "missiles",
+    },
+    "prsm": {
+        "name":        "🚀 PrSM",
+        "price":       1_000_000_000,
         "tech_req":    7,
         "category":    "missiles",
         "military_col": "missiles",
     },
     "brahmos": {
-        "name_fa":     "موشک BrahMos",
-        "name_en":     "BrahMos",
-        "emoji":       "🚀",
+        "name":        "🚀 BrahMos",
         "price":       1_500_000_000,
         "tech_req":    8,
         "category":    "missiles",
         "military_col": "missiles",
     },
+    "iskander": {
+        "name":        "🚀 Iskander-M",
+        "price":       1_200_000_000,
+        "tech_req":    7,
+        "category":    "missiles",
+        "military_col": "missiles",
+    },
+    "kalibr": {
+        "name":        "🚀 Kalibr",
+        "price":       1_000_000_000,
+        "tech_req":    7,
+        "category":    "missiles",
+        "military_col": "missiles",
+    },
+    "kinzhal": {
+        "name":        "🚀 Kinzhal",
+        "price":       2_000_000_000,
+        "tech_req":    8,
+        "category":    "missiles",
+        "military_col": "missiles",
+    },
+    "df21": {
+        "name":        "🚀 DF-21",
+        "price":       1_800_000_000,
+        "tech_req":    7,
+        "category":    "missiles",
+        "military_col": "missiles",
+    },
+    "df26": {
+        "name":        "🚀 DF-26",
+        "price":       2_500_000_000,
+        "tech_req":    8,
+        "category":    "missiles",
+        "military_col": "missiles",
+    },
+    "ballistic": {
+        "name":        "🚀 موشک بالستیک",
+        "price":       1_500_000_000,
+        "tech_req":    7,
+        "category":    "missiles",
+        "military_col": "missiles",
+    },
 
-    # ── Air Defense ───────────────────────────────────────────────────────
+    # ════════════════════════════════════════════════════════════════════════
+    # 🛡  پدافند هوایی
+    # ════════════════════════════════════════════════════════════════════════
+
     "nasams": {
-        "name_fa":     "سامانه NASAMS",
-        "name_en":     "NASAMS",
-        "emoji":       "🛡",
+        "name":        "🛡 NASAMS",
         "price":       1_800_000_000,
         "tech_req":    6,
         "category":    "air_defense",
         "military_col": "air_defense",
     },
-    "iron_dome": {
-        "name_fa":     "سامانه Iron Dome",
-        "name_en":     "Iron Dome",
-        "emoji":       "🛡",
-        "price":       2_000_000_000,
-        "tech_req":    7,
-        "category":    "air_defense",
-        "military_col": "air_defense",
-    },
     "patriot": {
-        "name_fa":     "سامانه Patriot",
-        "name_en":     "Patriot",
-        "emoji":       "🛡",
+        "name":        "🛡 Patriot",
         "price":       2_500_000_000,
         "tech_req":    7,
         "category":    "air_defense",
         "military_col": "air_defense",
     },
+    "iron_dome": {
+        "name":        "🛡 Iron Dome",
+        "price":       2_000_000_000,
+        "tech_req":    7,
+        "category":    "air_defense",
+        "military_col": "air_defense",
+    },
+    "davids_sling": {
+        "name":        "🛡 David's Sling",
+        "price":       2_200_000_000,
+        "tech_req":    7,
+        "category":    "air_defense",
+        "military_col": "air_defense",
+    },
+    "hq9": {
+        "name":        "🛡 HQ-9",
+        "price":       2_500_000_000,
+        "tech_req":    7,
+        "category":    "air_defense",
+        "military_col": "air_defense",
+    },
+    "pantsir": {
+        "name":        "🛡 Pantsir-S1",
+        "price":       1_500_000_000,
+        "tech_req":    6,
+        "category":    "air_defense",
+        "military_col": "air_defense",
+    },
+    "s300": {
+        "name":        "🛡 S-300",
+        "price":       2_000_000_000,
+        "tech_req":    6,
+        "category":    "air_defense",
+        "military_col": "air_defense",
+    },
     "s400": {
-        "name_fa":     "سامانه S-400",
-        "name_en":     "S-400",
-        "emoji":       "🛡",
+        "name":        "🛡 S-400",
         "price":       3_000_000_000,
         "tech_req":    8,
         "category":    "air_defense",
         "military_col": "air_defense",
     },
+    "s500": {
+        "name":        "🛡 S-500",
+        "price":       5_000_000_000,
+        "tech_req":    9,
+        "category":    "air_defense",
+        "military_col": "air_defense",
+    },
     "thaad": {
-        "name_fa":     "سامانه THAAD",
-        "name_en":     "THAAD",
-        "emoji":       "🛡",
+        "name":        "🛡 THAAD",
         "price":       4_000_000_000,
         "tech_req":    9,
         "category":    "air_defense",
@@ -445,15 +597,16 @@ MARKET_CATALOG: dict[str, dict] = {
     },
 }
 
-# ── Category metadata ─────────────────────────────────────────────────────────
+# ── Category metadata (display order preserved) ───────────────────────────────
 
-CATEGORIES: dict[str, dict] = {
-    "ground":      {"label": "🪖 Ground Forces",  "callback": "mkt_cat_ground"},
-    "air":         {"label": "✈ Air Force",        "callback": "mkt_cat_air"},
-    "navy":        {"label": "🚢 Navy",             "callback": "mkt_cat_navy"},
-    "missiles":    {"label": "🚀 Missiles",         "callback": "mkt_cat_missiles"},
-    "air_defense": {"label": "🛡 Air Defense",     "callback": "mkt_cat_air_defense"},
-    "factories":   {"label": "🏗 Factories",        "callback": "mkt_cat_factories"},
+CATEGORIES: dict[str, str] = {
+    "ground":      "🪖 تجهیزات زمینی",
+    "fighters":    "✈ جنگنده‌ها",
+    "helicopters": "🚁 بالگردها",
+    "drones":      "🤖 پهپادها",
+    "navy":        "🚢 نیروی دریایی",
+    "missiles":    "🚀 موشک‌ها",
+    "air_defense": "🛡 پدافند هوایی",
 }
 
 
@@ -465,9 +618,7 @@ def open_market() -> dict:
 
 
 def check_budget(country_id: int, total_cost: float) -> tuple[bool, float]:
-    """
-    Return (has_enough: bool, current_budget: float).
-    """
+    """Return (has_enough, current_budget)."""
     conn = get_connection()
     try:
         row = conn.execute(
@@ -480,9 +631,7 @@ def check_budget(country_id: int, total_cost: float) -> tuple[bool, float]:
 
 
 def check_technology(country_id: int, tech_req: int) -> tuple[bool, int]:
-    """
-    Return (meets_requirement: bool, current_level: int).
-    """
+    """Return (meets_requirement, current_level)."""
     if tech_req <= 0:
         return True, 0
     conn = get_connection()
@@ -504,8 +653,10 @@ def register_purchase(
     total_cost: float,
 ) -> None:
     """
-    Deduct budget, update military inventory, log to purchase_history.
-    All in one atomic transaction.
+    Atomic transaction:
+      1. Deduct budget from countries.
+      2. Increment the correct military column.
+      3. Log to purchase_history.
     """
     info = MARKET_CATALOG[item_key]
     col  = info["military_col"]
@@ -515,7 +666,8 @@ def register_purchase(
         with conn:
             conn.execute(
                 "UPDATE countries SET budget = budget - ?, "
-                "updated_at = strftime('%Y-%m-%d %H:%M:%S','now') WHERE id = ?",
+                "updated_at = strftime('%Y-%m-%d %H:%M:%S','now') "
+                "WHERE id = ?",
                 (total_cost, country_id),
             )
             conn.execute(
@@ -528,7 +680,7 @@ def register_purchase(
                 "INSERT INTO purchase_history "
                 "(country_id, item_name, quantity, price, purchase_time) "
                 "VALUES (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S','now'))",
-                (country_id, info["name_fa"], quantity, total_cost),
+                (country_id, info["name"], quantity, total_cost),
             )
     finally:
         conn.close()
@@ -537,49 +689,43 @@ def register_purchase(
 def buy_item(country_id: int, item_key: str, quantity: int) -> dict:
     """
     Full purchase pipeline.
-    Returns a result dict with success flag, message, and receipt data.
+    Returns a result dict — always check result["success"] first.
     """
     if item_key not in MARKET_CATALOG:
-        return {"success": False, "message": "❌ تجهیزات شناخته‌شده نیست."}
+        return {"success": False, "error": "item_unknown"}
 
     if quantity <= 0:
-        return {"success": False, "message": "❌ تعداد باید بیشتر از صفر باشد."}
+        return {"success": False, "error": "qty_zero"}
 
     info       = MARKET_CATALOG[item_key]
     unit_price = info["price"]
     total_cost = unit_price * quantity
 
-    # Tech check
     tech_ok, tech_level = check_technology(country_id, info["tech_req"])
     if not tech_ok:
         return {
-            "success": False,
-            "message": (
-                f"❌ سطح فناوری کافی نیست.\n"
-                f"نیاز: سطح {info['tech_req']} — فعلی: سطح {tech_level}"
-            ),
+            "success":   False,
+            "error":     "tech",
+            "need":      info["tech_req"],
+            "have":      tech_level,
         }
 
-    # Budget check
     budget_ok, budget = check_budget(country_id, total_cost)
     if not budget_ok:
         return {
-            "success": False,
-            "message": (
-                f"❌ بودجه کافی نیست.\n"
-                f"هزینه کل: {total_cost:,.0f}\nبودجه فعلی: {budget:,.0f}"
-            ),
+            "success":    False,
+            "error":      "budget",
+            "total_cost": total_cost,
+            "budget":     budget,
         }
 
-    # Execute
     register_purchase(country_id, item_key, quantity, total_cost)
 
-    remaining = budget - total_cost
     return {
         "success":    True,
-        "name":       info["name_fa"],
+        "name":       info["name"],
         "quantity":   quantity,
         "unit_price": unit_price,
         "total_cost": total_cost,
-        "remaining":  remaining,
+        "remaining":  budget - total_cost,
     }
